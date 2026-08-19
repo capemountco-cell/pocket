@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchQueue, recordServe, resetHistory, type DiscoverySite } from "@/lib/discovery";
+import { isSupabaseConfigured } from "@/integrations/supabase/client";
 
 // Fetch this many candidates at a time. Large enough that a run of taps never
 // waits on the network, small enough that a device doesn't burn through the
@@ -10,7 +11,7 @@ const QUEUE_SIZE = 25;
 // rather than interrupting it.
 const REFILL_AT = 3;
 
-export type DeckStatus = "loading" | "ready" | "empty" | "error";
+export type DeckStatus = "loading" | "ready" | "empty" | "error" | "unconfigured";
 
 /**
  * The discovery loop: hold a buffer of candidates, hand out one at a time, and
@@ -74,6 +75,10 @@ export function useDiscoveryDeck(deviceId: string | null) {
 
   useEffect(() => {
     if (!deviceId) return;
+    if (!isSupabaseConfigured) {
+      setStatus("unconfigured");
+      return;
+    }
     void refill(deviceId, { serveNext: true });
   }, [deviceId, refill]);
 

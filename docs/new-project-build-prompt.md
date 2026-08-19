@@ -13,13 +13,19 @@ and analytics contracts into one brief.
 > `src/components/sheets/`. Read the code first; this document explains the
 > intent behind it.
 >
-> Milestone 4 is wired too, against the **existing** Supabase project rather
-> than a new one: the feed, reactions, collection, submissions and analytics
-> all run through `src/lib/discovery.ts`. That database predates this build and
-> uses the predecessor's vocabulary, so the client only ever calls
-> brand-neutral wrappers (`supabase/migrations/`). Auth is still unbuilt —
-> everything is keyed on the anonymous device id, and menu rows that need an
-> account say so on the row.
+> Milestone 4 is wired too, against the **existing** database rather than a new
+> one: the feed, reactions, collection, submissions and analytics all run
+> through `src/lib/discovery.ts`. That database predates this build and uses the
+> predecessor's vocabulary, so the client only ever calls brand-neutral wrappers
+> (`supabase/migrations/`). Auth is still unbuilt — everything is keyed on the
+> anonymous device id, and menu rows that need an account say so on the row.
+>
+> The catalogue lives in the predecessor app's own project
+> (`boembmgwjjdqgkcokapx`), which is Lovable-managed and therefore does not
+> appear in the Supabase dashboard's project list. A same-named,
+> schema-only project does appear there and has never held a site row — do not
+> mistake one for the other. Set `VITE_SUPABASE_PUBLISHABLE_KEY` in the
+> deployment environment; no key belongs in this repo.
 
 **How to use it**
 

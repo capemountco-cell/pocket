@@ -3,21 +3,31 @@ import type { Database } from "./types";
 
 // Connection details for the Postgres/Auth/Storage backend.
 //
-// These two values are public by design: the publishable key identifies the
-// project and carries no privileges of its own, and both are visible in any
-// deployed bundle. Row Level Security is the actual access boundary, which is
-// why every write in this app goes through a SECURITY DEFINER function rather
-// than a direct table write. The service-role key grants real privileges and
-// must never appear in this repository or in any client bundle.
+// This points at the catalogue's real home -- the project the predecessor app
+// has been filling since June -- not the schema-only copy that carries the
+// same name in the Supabase dashboard. That copy has every table and function
+// but has never held a single site row.
 //
-// Env vars win where they are set, so a fork can point at its own project
-// without editing source.
+// The project URL is an address, not a credential, so it has a default here.
+// The key does NOT: it is read from the environment only, matching the rule
+// that no key belongs in this repository. It is the publishable (anon) key,
+// which is safe in a browser bundle -- Row Level Security is the real access
+// boundary, which is why every write goes through a SECURITY DEFINER function.
+// The service-role key bypasses RLS entirely and must never appear here or in
+// any client bundle, under any name carrying a VITE_ prefix.
 const SUPABASE_URL =
-  import.meta.env["VITE_SUPABASE_URL"] ?? "https://kmxpyemqddvfchkeureq.supabase.co";
+  import.meta.env["VITE_SUPABASE_URL"] ?? "https://boembmgwjjdqgkcokapx.supabase.co";
 
-const SUPABASE_PUBLISHABLE_KEY =
-  import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ??
-  "sb_publishable_9WbJyinu1m1dFbkNullPgw_h7hsLyXC";
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ?? "";
+
+/**
+ * Whether the app has a key to talk to the backend at all.
+ *
+ * Checked by the discovery screen so a missing key reports itself precisely
+ * instead of surfacing as a generic network failure — the two have completely
+ * different fixes, and guessing wrong costs an afternoon.
+ */
+export const isSupabaseConfigured = SUPABASE_PUBLISHABLE_KEY.length > 0;
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {

@@ -15,10 +15,11 @@ export type DiscoverySite = {
   url: string;
   blurb: string;
   tag: string;
-  // Whether the origin allows framing, measured from its live response
-  // headers at submission. Null means never checked -- treated as "don't
-  // frame it", because guessing wrong renders the browser's own error page
-  // and fires no event we could catch.
+  // Whether to attempt framing this origin. Only a measured `false` -- the
+  // origin's own X-Frame-Options / CSP saying no -- rules it out. Most of the
+  // catalogue has never been probed, and refusing to embed everything
+  // unmeasured would turn the product into a wall of preview cards; SiteViewer
+  // already falls back to one when a frame doesn't load in time.
   embeddable: boolean;
 };
 
@@ -35,15 +36,31 @@ export function domainOf(url: string): string {
 }
 
 export function toDiscoverySite(row: SiteRow): DiscoverySite {
+  const url = row.final_url ?? row.url;
+  const domain = domainOf(url);
   return {
     id: row.id,
-    title: row.title || row.og_title || domainOf(row.final_url ?? row.url),
-    domain: domainOf(row.final_url ?? row.url),
-    url: row.final_url ?? row.url,
+    // Part of the catalogue was imported with the address as the title. A
+    // domain reads better than a raw URL wrapped across three lines, so a
+    // title that is just a link is treated as no title at all.
+    title: pickTitle(row.title, row.og_title, domain),
+    domain,
+    url,
     blurb: row.description ?? row.og_description ?? "",
     tag: row.category ?? "Site",
-    embeddable: row.embeddable === true,
+    // Respect a measured refusal; try everything else. See the note on the
+    // field above -- most rows have never been probed.
+    embeddable: row.embeddable !== false,
   };
+}
+
+function pickTitle(...candidates: (string | null | undefined)[]): string {
+  for (const candidate of candidates) {
+    const trimmed = candidate?.trim();
+    if (trimmed && !/^https?:\/\//i.test(trimmed)) return trimmed;
+  }
+  // The domain is the last candidate and is always a usable name.
+  return candidates[candidates.length - 1]?.trim() || "Untitled";
 }
 
 /**

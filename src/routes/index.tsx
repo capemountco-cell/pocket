@@ -118,19 +118,25 @@ function DeckMessage({
   onRetry: () => void;
 }) {
   const copy =
-    status === "error"
+    status === "unconfigured"
       ? {
-          title: "Couldn't reach the feed",
-          body: "The connection didn't answer. Your reactions and saved sites are safe.",
-          action: { label: "Try again", run: onRetry },
+          title: "The feed isn't connected",
+          body: "Set VITE_SUPABASE_PUBLISHABLE_KEY in this deployment's environment and reload. Everything else works without it.",
+          action: null,
         }
-      : status === "empty"
+      : status === "error"
         ? {
-            title: "You've seen everything",
-            body: `That's the whole catalogue for now. Start it over, or add a site ${APP_NAME} doesn't have yet.`,
-            action: { label: "Start over", run: onRestart },
+            title: "Couldn't reach the feed",
+            body: "The connection didn't answer. Your reactions and saved sites are safe.",
+            action: { label: "Try again", run: onRetry },
           }
-        : { title: "Finding you a site…", body: "", action: null };
+        : status === "empty"
+          ? {
+              title: "You've seen everything",
+              body: `That's the whole catalogue for now. Start it over, or add a site ${APP_NAME} doesn't have yet.`,
+              action: { label: "Start over", run: onRestart },
+            }
+          : { title: "Finding you a site…", body: "", action: null };
 
   return (
     <div
