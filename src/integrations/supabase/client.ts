@@ -29,12 +29,18 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"
  */
 export const isSupabaseConfigured = SUPABASE_PUBLISHABLE_KEY.length > 0;
 
+// Sessions persist in the browser and nowhere else: on the server there is no
+// storage to write to, and touching localStorage during SSR would throw before
+// the first byte of HTML went out.
+const isBrowser = typeof window !== "undefined";
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    // Nobody signs in yet, and a session-less client must not try to write a
-    // session to storage during SSR.
-    persistSession: false,
-    autoRefreshToken: false,
+    persistSession: isBrowser,
+    autoRefreshToken: isBrowser,
+    // A magic link comes back with the tokens in the URL fragment; without
+    // this the link lands on a still-signed-out page.
+    detectSessionInUrl: isBrowser,
   },
 });
 

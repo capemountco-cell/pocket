@@ -16,6 +16,7 @@ import { recordEvent } from "@/lib/discovery";
 import { getDeviceId } from "@/lib/device-id";
 import { APP_NAME } from "@/lib/brand";
 import type { DiscoverySite } from "@/lib/discovery";
+import type { AuthState } from "@/lib/auth";
 
 const ICON = 21;
 
@@ -31,6 +32,8 @@ export function MenuSheet({
   onOpenSaved,
   onOpenSubmit,
   onOpenSettings,
+  onOpenAuth,
+  auth,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -39,44 +42,47 @@ export function MenuSheet({
   onOpenSaved: () => void;
   onOpenSubmit: () => void;
   onOpenSettings: () => void;
+  onOpenAuth: () => void;
+  auth: AuthState;
 }) {
+  const signedIn = Boolean(auth.session);
   return (
     <BaseSheet
       open={open}
       onOpenChange={onOpenChange}
       title={`${APP_NAME} menu`}
-      header={<GuestRow />}
+      header={<AccountRow auth={auth} onOpenAuth={onOpenAuth} />}
       footer={
-        <button
-          type="button"
-          disabled
-          aria-disabled="true"
-          style={{
-            display: "flex",
-            width: "100%",
-            minHeight: 52,
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: 999,
-            border: 0,
-            background: "var(--app-chrome-fg, #ffffff)",
-            color: "var(--app-chrome-bg, #000000)",
-            fontFamily: "Inter, system-ui, sans-serif",
-            fontSize: 17,
-            fontWeight: 700,
-            opacity: 0.5,
-            cursor: "default",
-          }}
-        >
-          Sign up &amp; log in — coming soon
-        </button>
+        signedIn ? (
+          <button
+            type="button"
+            onClick={() => {
+              const deviceId = getDeviceId();
+              if (deviceId) recordEvent(deviceId, "auth_signed_out");
+              void auth.signOut().then(() => toast("Signed out"));
+              onOpenChange(false);
+            }}
+            style={{
+              ...FOOTER_BUTTON,
+              background: "transparent",
+              color: "var(--app-chrome-fg, #ffffff)",
+              border: "1px solid var(--app-chrome-border, rgba(255,255,255,0.14))",
+            }}
+          >
+            Sign out
+          </button>
+        ) : (
+          <button type="button" onClick={onOpenAuth} style={FOOTER_BUTTON}>
+            Sign up &amp; log in
+          </button>
+        )
       }
     >
       <SheetRow
         icon={<Inbox size={ICON} />}
         label="Inbox"
-        disabled
-        trailing={<SheetRowBadge>Needs an account</SheetRowBadge>}
+        disabled={!signedIn}
+        {...(signedIn ? {} : { trailing: <SheetRowBadge>Needs an account</SheetRowBadge> })}
       />
       <SheetRow icon={<Bookmark size={ICON} />} label="Saved sites" onClick={onOpenSaved} />
       <SheetRow
@@ -114,9 +120,18 @@ export function MenuSheet({
   );
 }
 
-// Signed out is the only state that exists until auth ships, so it is shown
-// plainly rather than dressed up as a half-built account panel.
-function GuestRow() {
+// Who you are, or an invitation to become someone. Signed out is a first-class
+// state, not a broken one: everything in this menu except the inbox works
+// without an account.
+function AccountRow({ auth, onOpenAuth }: { auth: AuthState; onOpenAuth: () => void }) {
+  const signedIn = Boolean(auth.session);
+  const name =
+    auth.profile?.display_name?.trim() ||
+    auth.profile?.username?.trim() ||
+    auth.profile?.email ||
+    auth.user?.email ||
+    "Guest";
+
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
       <span
@@ -130,25 +145,79 @@ function GuestRow() {
           borderRadius: 999,
           background: "var(--app-chrome-avatar, #1f1f1f)",
           color: "var(--app-chrome-muted, #9c9c97)",
+          overflow: "hidden",
+          flex: "0 0 auto",
         }}
       >
-        <User size={22} />
+        {auth.profile?.avatar_url ? (
+          <img
+            src={auth.profile.avatar_url}
+            alt=""
+            width={46}
+            height={46}
+            style={{ width: 46, height: 46, objectFit: "cover" }}
+          />
+        ) : (
+          <User size={22} />
+        )}
       </span>
-      <span>
+      <span style={{ minWidth: 0 }}>
         <span
           style={{
             display: "block",
             fontSize: 17,
             fontWeight: 700,
             color: "var(--app-chrome-fg, #ffffff)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
           }}
         >
-          Guest
+          {auth.loading ? "\u2026" : name}
         </span>
-        <span style={{ display: "block", fontSize: 14, color: "var(--app-chrome-muted, #9c9c97)" }}>
-          Everything here is saved on this device
-        </span>
+        {signedIn ? (
+          <span
+            style={{ display: "block", fontSize: 14, color: "var(--app-chrome-muted, #9c9c97)" }}
+          >
+            Your saved sites follow you here
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={onOpenAuth}
+            style={{
+              padding: 0,
+              background: "transparent",
+              border: 0,
+              color: "var(--app-chrome-fg, #ffffff)",
+              fontFamily: "Inter, system-ui, sans-serif",
+              fontSize: 14,
+              fontWeight: 600,
+              textDecoration: "underline",
+              cursor: "pointer",
+            }}
+          >
+            Create an account
+          </button>
+        )}
       </span>
     </div>
   );
 }
+
+const FOOTER_BUTTON: React.CSSProperties = {
+  display: "flex",
+  width: "100%",
+  minHeight: 52,
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: 999,
+  border: 0,
+  background: "var(--app-chrome-fg, #ffffff)",
+  color: "var(--app-chrome-bg, #000000)",
+  fontFamily: "Inter, system-ui, sans-serif",
+  fontSize: 17,
+  fontWeight: 700,
+  cursor: "pointer",
+  WebkitTapHighlightColor: "transparent",
+};

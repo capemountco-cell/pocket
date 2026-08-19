@@ -4,6 +4,8 @@ import { SendToSheet } from "@/components/sheets/SendToSheet";
 import { SubmitSheet } from "@/components/sheets/SubmitSheet";
 import { SettingsSheet } from "@/components/sheets/SettingsSheet";
 import { SavedSheet } from "@/components/sheets/SavedSheet";
+import { AuthSheet } from "@/components/sheets/AuthSheet";
+import { useAuth } from "@/lib/auth";
 import type { SitePrefs } from "@/lib/site-prefs";
 import type { DiscoverySite } from "@/lib/discovery";
 import type { EventKind } from "@/lib/discovery";
@@ -31,6 +33,10 @@ export function NavSheets({
   isSaved: boolean;
   onShowSite: (site: DiscoverySite) => void;
 }) {
+  // Who is signed in, read once here and handed to the sheets that show it,
+  // so two sheets can never disagree about it.
+  const auth = useAuth();
+
   // BaseSheet's own close paths (drag, Escape, backdrop, close button) all
   // report through onOpenChange, so closing is expressed once per sheet.
   const bind = (key: SheetKey) => ({
@@ -49,6 +55,8 @@ export function NavSheets({
         onOpenSaved={() => openFromSheet("saved", "bookmarks_open")}
         onOpenSubmit={() => openFromSheet("submit", "submit_open")}
         onOpenSettings={() => openFromSheet("settings", "preferences_open")}
+        onOpenAuth={() => openFromSheet("auth", "auth_open")}
+        auth={auth}
       />
       <ReactionSheet
         {...bind("reaction")}
@@ -64,6 +72,7 @@ export function NavSheets({
       <SubmitSheet {...bind("submit")} />
       <SettingsSheet {...bind("settings")} />
       <SavedSheet {...bind("saved")} sites={savedSites} onShowSite={onShowSite} />
+      <AuthSheet {...bind("auth")} />
     </>
   );
 }
