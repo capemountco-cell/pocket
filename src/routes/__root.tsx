@@ -15,7 +15,6 @@ import { APP_NAME, APP_TAGLINE } from "../lib/brand";
 import { DEFAULT_NAV_STYLE } from "../lib/nav-style";
 import { Toaster } from "../components/ui/sonner";
 
-
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -132,7 +131,5 @@ function RootComponent() {
       <Outlet />
       <Toaster position="top-center" />
     </QueryClientProvider>
-
-
   );
 }

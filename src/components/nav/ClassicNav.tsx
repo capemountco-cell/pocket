@@ -1,40 +1,128 @@
-import { NAV_BAR_HEIGHT, NAV_Z_INDEX, SAFE_BOTTOM_PAD } from "@/lib/nav-style";
+import { MenuIcon, ReactIcon, SendToIcon, SubmitIcon, ICON_REGISTRY } from "@/components/icons";
+import { useNavActions } from "./useNavActions";
+import { useLogoPulse } from "./useLogoPulse";
 import { BrandMark } from "./BrandMark";
 import { NavButton } from "./NavButton";
-import type { NavSlot } from "./useNavActions";
+import { NAV_BALANCED_PAD, NAV_HEIGHT } from "./navMetrics";
+import type { BottomNavProps } from "./types";
 
-/** Full-width fixed bar. Chrome only — behaviour comes from useNavActions. */
-export function ClassicNav({ slots }: { slots: NavSlot[] }) {
+// Visual size of each action symbol (see AppIcon). Tuned to read clearly on
+// iPhone while still leaving enough column width for a >=44px tap target at
+// the narrowest supported viewport (iPhone SE, 320px). ~9% smaller than the
+// center brand mark (44px) so the four side icons read as intentionally
+// secondary to it.
+const NAV_ICON_SIZE = 31;
+
+// Theme-aware chrome tokens. On White these fall back to the original
+// colors; on a colored theme they tint the bar and its icons.
+const INK = "var(--app-chrome-fg, #111111)";
+const SURFACE = "var(--app-chrome-bg, #ffffff)";
+
+// The full-width fixed bottom bar. Preserved pixel-for-pixel — this is what
+// "Classic" means.
+export function ClassicNav(props: BottomNavProps) {
+  const {
+    onDiscover,
+    isSaved,
+    reactActive,
+    glowMenu,
+    menuUnread,
+    glowSubmit,
+    logoRef,
+    navRef,
+    logoPulseKey,
+  } = props;
+
+  const { handleMenuTap, handleReactTap, handleSendToTap, handleSubmitTap } = useNavActions(props);
+
+  const setLogoRefs = useLogoPulse(logoPulseKey, logoRef);
+
   return (
     <nav
-      aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 border-t"
+      ref={navRef}
+      aria-label="Primary actions"
       style={{
-        zIndex: NAV_Z_INDEX,
-        backgroundColor: "var(--app-chrome-bg)",
-        borderColor: "var(--app-border)",
-        paddingBottom: SAFE_BOTTOM_PAD,
+        position: "fixed",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: SURFACE,
+        padding: 0,
+        paddingTop: NAV_BALANCED_PAD,
+        paddingBottom: NAV_BALANCED_PAD,
+        height: NAV_HEIGHT,
+        boxSizing: "border-box",
+        // Permanent hardening: the nav is a fixed overlay that must sit on top
+        // of every view (discovery, saved, sheets). No view may hide it.
+        zIndex: 50,
       }}
     >
-      <ul
-        className="grid grid-cols-[1fr_1fr_1.65fr_1fr_1fr] items-center px-1"
-        style={{ minHeight: NAV_BAR_HEIGHT }}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1.65fr 1fr 1fr",
+          alignItems: "stretch",
+          height: "100%",
+          padding: 0,
+          margin: "0 auto",
+          maxWidth: 640,
+          width: "100%",
+        }}
       >
-        {slots.map((slot) => (
-          <li key={slot.id} className="flex justify-center">
-            {slot.kind === "brand" ? (
-              <BrandMark label={slot.label} onPress={slot.onPress} />
-            ) : (
-              <NavButton
-                icon={slot.icon}
-                label={slot.label}
-                active={slot.active}
-                onPress={slot.onPress}
+        <NavButton label="Menu" ink={INK} onClick={handleMenuTap}>
+          <span style={{ position: "relative", display: "inline-flex" }}>
+            <MenuIcon size={NAV_ICON_SIZE} glowKey={glowMenu} />
+            {menuUnread && (
+              <span
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  top: -2,
+                  right: -3,
+                  width: 9,
+                  height: 9,
+                  borderRadius: 999,
+                  background: ICON_REGISTRY.menu.accentColor,
+                  border: "1.5px solid " + SURFACE,
+                  boxSizing: "content-box",
+                }}
               />
             )}
-          </li>
-        ))}
-      </ul>
+          </span>
+        </NavButton>
+
+        <NavButton label="React" ink={INK} onClick={handleReactTap} active={reactActive}>
+          <ReactIcon size={NAV_ICON_SIZE} state={reactActive ? "active" : "idle"} />
+        </NavButton>
+
+        <button
+          onClick={onDiscover}
+          aria-label="Show me a site"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minWidth: 0,
+            height: "100%",
+            padding: 0,
+            background: "transparent",
+            border: 0,
+            cursor: "pointer",
+            outline: "none",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          <BrandMark size={44} logoRef={setLogoRefs} />
+        </button>
+
+        <NavButton label="Send to" ink={INK} onClick={handleSendToTap} active={isSaved}>
+          <SendToIcon size={NAV_ICON_SIZE} state={isSaved ? "active" : "idle"} />
+        </NavButton>
+
+        <NavButton label="Submit a site" ink={INK} onClick={handleSubmitTap}>
+          <SubmitIcon size={NAV_ICON_SIZE} glowKey={glowSubmit} />
+        </NavButton>
+      </div>
     </nav>
   );
 }
