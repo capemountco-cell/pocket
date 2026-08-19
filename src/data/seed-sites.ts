@@ -5,9 +5,13 @@ export type DiscoverySite = {
   url: string;
   blurb: string;
   tag: string;
-  // Sites that send X-Frame-Options / CSP frame-ancestors can't be embedded.
-  // They are never rejected -- SiteViewer renders the branded preview card
-  // instead. Milestone 8 replaces this flag with a real check at submit time.
+  // Whether the origin allows framing. Measured from its live response
+  // headers (X-Frame-Options / CSP frame-ancestors), not guessed -- a wrong
+  // value here is a broken screen, since a blocked frame renders the
+  // browser's own error page and no error event fires for us to catch.
+  // Sites that refuse framing are never rejected: SiteViewer renders the
+  // branded preview card instead. Milestone 8 replaces this flag with the
+  // real check at submit time.
   embeddable: boolean;
 };
 
@@ -15,12 +19,11 @@ export type DiscoverySite = {
 export const SEED_SITES: DiscoverySite[] = [
   {
     id: "s1",
-    title: "The Museum of Obsolete Sounds",
-    domain: "conserve-the-sound.de",
-    url: "https://www.conserve-the-sound.de",
-    blurb:
-      "An audio archive of machines nobody uses anymore: dial tones, shutters, typewriter carriages.",
-    tag: "Archive",
+    title: "Sandspiel",
+    domain: "sandspiel.club",
+    url: "https://sandspiel.club",
+    blurb: "A falling-sand playground: paint sand, water, plants and fire, then watch them fight.",
+    tag: "Toy",
     embeddable: true,
   },
   {
@@ -30,7 +33,7 @@ export const SEED_SITES: DiscoverySite[] = [
     url: "https://radio.garden",
     blurb: "Spin a globe and listen to whatever a local station is broadcasting right now.",
     tag: "Sound",
-    embeddable: false,
+    embeddable: true,
   },
   {
     id: "s3",
@@ -39,7 +42,7 @@ export const SEED_SITES: DiscoverySite[] = [
     url: "https://windows93.net",
     blurb: "A fictional operating system that never shipped, fully clickable in your browser.",
     tag: "Toy",
-    embeddable: false,
+    embeddable: true,
   },
   {
     id: "s4",
@@ -48,7 +51,7 @@ export const SEED_SITES: DiscoverySite[] = [
     url: "https://www.oldmapsonline.org",
     blurb: "Centuries of cartography, searchable by the place you are standing in today.",
     tag: "Maps",
-    embeddable: true,
+    embeddable: false,
   },
   {
     id: "s5",
@@ -57,7 +60,7 @@ export const SEED_SITES: DiscoverySite[] = [
     url: "https://publicdomainreview.org",
     blurb: "Essays on the strangest artefacts that have quietly fallen out of copyright.",
     tag: "Essays",
-    embeddable: true,
+    embeddable: false,
   },
   {
     id: "s6",
@@ -93,7 +96,7 @@ export const SEED_SITES: DiscoverySite[] = [
     url: "https://neal.fun/internet-artifacts/",
     blurb: "A guided walk through the objects that built the network, one decade at a time.",
     tag: "History",
-    embeddable: true,
+    embeddable: false,
   },
   {
     id: "s10",
