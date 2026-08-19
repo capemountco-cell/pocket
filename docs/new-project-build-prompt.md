@@ -5,11 +5,18 @@ Claude, Cursor) to stand up the product from an empty repo. It merges the produc
 mission, architecture, design system, motion system, accessibility, performance,
 and analytics contracts into one brief.
 
-> **Status.** Milestone 1 shipped, and the design system in §6/§7/§9 is no
+> **Status.** Milestones 1 and 2 shipped. The design system in §6/§7/§9 is no
 > longer a description to build from — it was ported from the predecessor
 > codebase and now lives in `src/styles.css`, `src/lib/theme.ts`, and
-> `src/components/nav/`. Read the code first; this document explains the
+> `src/components/nav/`. The sheet system in §8 is likewise built:
+> `src/components/ui/base-sheet.tsx` plus the feature sheets in
+> `src/components/sheets/`. Read the code first; this document explains the
 > intent behind it.
+>
+> Everything the sheets record — reactions, saved sites, hidden sites,
+> submissions — is device-local (`src/lib/site-prefs.ts`) until Milestone 4
+> stands the backend up. There is no Supabase project, no `supabase/`
+> directory, and no auth yet; rows that need one say so on the row.
 
 **How to use it**
 

@@ -1,16 +1,49 @@
-import type { BottomNavProps } from "./types";
+import { useCallback, useMemo, useState } from "react";
+import { useSitePrefs } from "@/lib/site-prefs";
+import type { BottomNavProps, NavSlot, NavSlots } from "./types";
+
+// Which sheet a slot opens. Closed union so a typo fails to compile rather
+// than silently opening nothing.
+export type SheetKey = "menu" | "reaction" | "send-to" | "submit" | "settings" | "saved";
 
 // The single source of truth for what a tap on each slot actually does.
-// ClassicNav and ModernNav both consume this — never fork slot behavior
-// between the two styles; extend this hook instead. Sheets and analytics
-// land here as they ship, so only this file changes when they do.
+// Called ONCE, by BottomNav, so ClassicNav and ModernNav are handed the same
+// handlers rather than each building their own -- slot behavior can never
+// fork between the two styles. Sheet state lives here too, which is why
+// BottomNav (not the bar) renders the sheets: a sheet nested inside the bar
+// would open inside it.
 export function useNavActions(props: BottomNavProps) {
-  const { onNav, onReact, onSendTo, onSubmit } = props;
+  const { site, onDiscover, onSlotTap } = props;
+  const prefs = useSitePrefs();
+  const [activeSheet, setActiveSheet] = useState<SheetKey | null>(null);
 
-  return {
-    handleMenuTap: onNav,
-    handleReactTap: onReact,
-    handleSendToTap: onSendTo,
-    handleSubmitTap: onSubmit,
-  };
+  // Tapping a slot whose sheet is already open closes it: the slot is a
+  // toggle, so the same tap that opened a sheet always takes it away again.
+  const open = useCallback(
+    (sheet: SheetKey, slot: NavSlot) => () => {
+      onSlotTap?.(slot);
+      setActiveSheet((activeSheet) => (activeSheet === sheet ? null : sheet));
+    },
+    [onSlotTap],
+  );
+
+  const closeSheet = useCallback(() => setActiveSheet(null), []);
+
+  const slots: NavSlots = useMemo(
+    () => ({
+      onMenuTap: open("menu", "menu"),
+      onReactTap: open("reaction", "react"),
+      onSendToTap: open("send-to", "send-to"),
+      onSubmitTap: open("submit", "submit"),
+      onDiscoverTap: () => {
+        onSlotTap?.("discover");
+        onDiscover();
+      },
+      reactActive: site ? prefs.reactions[site.id] === "like" : false,
+      isSaved: site ? prefs.savedIds.includes(site.id) : false,
+    }),
+    [open, onDiscover, onSlotTap, prefs, site],
+  );
+
+  return { slots, activeSheet, setActiveSheet, closeSheet, prefs };
 }

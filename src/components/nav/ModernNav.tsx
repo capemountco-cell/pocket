@@ -1,10 +1,9 @@
 import { MenuIcon, ReactIcon, SendToIcon, SubmitIcon, ICON_REGISTRY } from "@/components/icons";
-import { useNavActions } from "./useNavActions";
 import { useLogoPulse } from "./useLogoPulse";
 import { BrandMark } from "./BrandMark";
 import { NavButton } from "./NavButton";
 import { NAV_BALANCED_PAD, NAV_HEIGHT } from "./navMetrics";
-import type { BottomNavProps } from "./types";
+import type { NavStyleProps } from "./types";
 
 // Slightly smaller than Classic's 31px glyph so Modern keeps its more
 // compact composition; ~9% smaller than MODERN_BRAND_SIZE, same ratio as
@@ -20,20 +19,10 @@ const INK = "#ffffff";
 // (no floating pill, no translucency). Reuses the exact same action logic,
 // brand mark, and button primitive as ClassicNav -- only the shell around
 // them differs: switching nav style must never duplicate business logic.
-export function ModernNav(props: BottomNavProps) {
-  const {
-    onDiscover,
-    isSaved,
-    reactActive,
-    glowMenu,
-    menuUnread,
-    glowSubmit,
-    logoRef,
-    navRef,
-    logoPulseKey,
-  } = props;
-
-  const { handleMenuTap, handleReactTap, handleSendToTap, handleSubmitTap } = useNavActions(props);
+export function ModernNav(props: NavStyleProps) {
+  const { slots, glowMenu, menuUnread, glowSubmit, logoRef, navRef, logoPulseKey } = props;
+  const { onMenuTap, onReactTap, onDiscoverTap, onSendToTap, onSubmitTap, isSaved, reactActive } =
+    slots;
 
   const setLogoRefs = useLogoPulse(logoPulseKey, logoRef);
 
@@ -69,7 +58,7 @@ export function ModernNav(props: BottomNavProps) {
           width: "100%",
         }}
       >
-        <NavButton label="Menu" ink={INK} fontSize={14} onClick={handleMenuTap}>
+        <NavButton label="Menu" ink={INK} fontSize={14} onClick={onMenuTap}>
           <span style={{ position: "relative", display: "inline-flex" }}>
             <MenuIcon size={MODERN_ICON_SIZE} glowKey={glowMenu} />
             {menuUnread && (
@@ -91,18 +80,12 @@ export function ModernNav(props: BottomNavProps) {
           </span>
         </NavButton>
 
-        <NavButton
-          label="React"
-          ink={INK}
-          fontSize={14}
-          onClick={handleReactTap}
-          active={reactActive}
-        >
+        <NavButton label="React" ink={INK} fontSize={14} onClick={onReactTap} active={reactActive}>
           <ReactIcon size={MODERN_ICON_SIZE} state={reactActive ? "active" : "idle"} />
         </NavButton>
 
         <button
-          onClick={onDiscover}
+          onClick={onDiscoverTap}
           aria-label="Show me a site"
           style={{
             display: "inline-flex",
@@ -121,17 +104,11 @@ export function ModernNav(props: BottomNavProps) {
           <BrandMark size={MODERN_BRAND_SIZE} logoRef={setLogoRefs} />
         </button>
 
-        <NavButton
-          label="Send to"
-          ink={INK}
-          fontSize={14}
-          onClick={handleSendToTap}
-          active={isSaved}
-        >
+        <NavButton label="Send to" ink={INK} fontSize={14} onClick={onSendToTap} active={isSaved}>
           <SendToIcon size={MODERN_ICON_SIZE} state={isSaved ? "active" : "idle"} />
         </NavButton>
 
-        <NavButton label="Submit a site" ink={INK} fontSize={14} onClick={handleSubmitTap}>
+        <NavButton label="Submit a site" ink={INK} fontSize={14} onClick={onSubmitTap}>
           <SubmitIcon size={MODERN_ICON_SIZE} glowKey={glowSubmit} />
         </NavButton>
       </div>

@@ -1,17 +1,45 @@
-export type BottomNavProps = {
-  onNav: () => void;
-  onReact: () => void;
-  onDiscover: () => void;
-  onSendTo: () => void;
-  onSubmit: () => void;
-  siteUrl?: string | undefined;
-  siteTitle?: string | undefined;
-  isSaved?: boolean | undefined;
-  reactActive?: boolean | undefined;
+import type { DiscoverySite } from "@/data/seed-sites";
+
+// Every slot is a user intent, not a UI mechanism. The names, positions and
+// meanings are fixed -- muscle memory is a feature -- so this union is what
+// analytics and any future slot behavior key off.
+export type NavSlot = "menu" | "react" | "discover" | "send-to" | "submit";
+
+// What a nav chrome (Classic or Modern) is handed. Both styles receive the
+// SAME object, produced once by useNavActions, so a tap can never mean two
+// different things depending on which bar is on screen.
+export type NavSlots = {
+  onMenuTap: () => void;
+  onReactTap: () => void;
+  onDiscoverTap: () => void;
+  onSendToTap: () => void;
+  onSubmitTap: () => void;
+  /** The current site carries a reaction from this device. */
+  reactActive: boolean;
+  /** The current site is in this device's collection. */
+  isSaved: boolean;
+};
+
+// Chrome-only decoration: glow pulses, the unread dot, and the refs the page
+// uses to choreograph the brand mark. Nothing here changes what a slot does.
+export type NavChromeProps = {
   glowMenu?: number | undefined;
   menuUnread?: boolean | undefined;
   glowSubmit?: number | undefined;
   logoRef?: React.Ref<HTMLSpanElement> | undefined;
   navRef?: React.Ref<HTMLElement> | undefined;
   logoPulseKey?: number | undefined;
+};
+
+export type NavStyleProps = NavChromeProps & { slots: NavSlots };
+
+export type BottomNavProps = NavChromeProps & {
+  /** The site currently on screen; the sheets act on it. */
+  site?: DiscoverySite | undefined;
+  /** Advance to the next site. Owned by the page — the deck is its state. */
+  onDiscover: () => void;
+  /** Show a specific site (a saved one, or one just submitted). */
+  onShowSite?: ((site: DiscoverySite) => void) | undefined;
+  /** Fired on every slot tap, before the sheet opens. Analytics lands here. */
+  onSlotTap?: ((slot: NavSlot) => void) | undefined;
 };
