@@ -203,7 +203,15 @@ export type EventKind =
   | "share"
   | "copy_link"
   | "open_site"
-  | "catalogue_restart";
+  | "catalogue_restart"
+  | "auth_open"
+  | "auth_instant_created"
+  | "auth_instant_claimed"
+  | "auth_instant_signin"
+  | "auth_wrong_password"
+  | "auth_magic_sent"
+  | "auth_signed_out"
+  | "auth_error";
 
 // One event name per nav slot. Declared here beside the union so adding a
 // slot forces a decision about what it is called in analytics, instead of a
