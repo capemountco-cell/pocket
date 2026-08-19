@@ -6,17 +6,33 @@ import type { DiscoverySite } from "@/data/seed-sites";
 // sites that send X-Frame-Options / CSP frame-ancestors. A site is never
 // rejected for refusing to be framed -- see the standing policy in the build
 // brief; the header is respected, never bypassed.
+// How long to wait for an embed before giving up on it. A cross-origin frame
+// reports nothing when the origin is down or hanging -- no error event fires
+// and onLoad may never come -- so a timeout is the only signal available
+// until the submission pipeline can check liveness server-side.
+const EMBED_TIMEOUT_MS = 8000;
+
 export function SiteViewer({ site }: { site: DiscoverySite }) {
   const [loaded, setLoaded] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
     setLoaded(false);
+    setTimedOut(false);
   }, [site.id]);
+
+  useEffect(() => {
+    if (!site.embeddable || loaded) return;
+    const t = setTimeout(() => setTimedOut(true), EMBED_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [site.id, site.embeddable, loaded]);
+
+  const showPreview = !site.embeddable || timedOut;
 
   return (
     <div className="app-viewer-outer">
       <div className="app-viewer-frame">
-        {site.embeddable ? (
+        {!showPreview ? (
           <>
             {!loaded && <div className="app-screen-glow" aria-hidden="true" />}
             <iframe
@@ -30,7 +46,7 @@ export function SiteViewer({ site }: { site: DiscoverySite }) {
             />
           </>
         ) : (
-          <PreviewCard site={site} />
+          <PreviewCard site={site} unreachable={timedOut} />
         )}
       </div>
     </div>
@@ -39,7 +55,7 @@ export function SiteViewer({ site }: { site: DiscoverySite }) {
 
 // The fallback presentation, not a downgrade: source domain, title, blurb,
 // and one obvious way to open the site in its own tab.
-function PreviewCard({ site }: { site: DiscoverySite }) {
+function PreviewCard({ site, unreachable }: { site: DiscoverySite; unreachable?: boolean }) {
   return (
     <div
       style={{
@@ -125,7 +141,9 @@ function PreviewCard({ site }: { site: DiscoverySite }) {
             color: "var(--app-fg-muted, #6B6B66)",
           }}
         >
-          This site asks not to be embedded, so it opens in its own tab.
+          {unreachable
+            ? "This site is slow to answer right now, so it opens in its own tab."
+            : "This site asks not to be embedded, so it opens in its own tab."}
         </p>
       </article>
     </div>
