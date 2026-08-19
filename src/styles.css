@@ -179,18 +179,29 @@
     overscroll-behavior: none;
   }
 
-  button:focus { outline: none; }
-  button:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
+  button:focus {
+    outline: none;
+  }
+  button:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
 
   /* Prevent iOS auto-zoom on focus for form controls */
-  input, textarea, select {
+  input,
+  textarea,
+  select {
     font-size: 16px;
   }
 }
 
 @keyframes app-sheen-slide {
-  0% { background-position: 200% 0; }
-  100% { background-position: -100% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 .app-sheen {
@@ -204,9 +215,15 @@
 }
 
 @keyframes app-logo-pulse {
-  0%   { opacity: 0.45; }
-  50%  { opacity: 1; }
-  100% { opacity: 0.45; }
+  0% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.45;
+  }
 }
 
 .app-logo-pulse {
@@ -214,8 +231,12 @@
 }
 
 @keyframes app-splash-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .app-splash-logo {
   animation: app-splash-fade-in 600ms ease-out both;
@@ -227,15 +248,30 @@
 }
 
 @keyframes press-glow {
-  0%   { color: inherit; filter: none; }
-  35%  { color: var(--glow-color, #22c55e); filter: drop-shadow(0 0 6px var(--glow-shadow, rgba(34,197,94,0.75))); }
-  100% { color: inherit; filter: none; }
+  0% {
+    color: inherit;
+    filter: none;
+  }
+  35% {
+    color: var(--glow-color, #22c55e);
+    filter: drop-shadow(0 0 6px var(--glow-shadow, rgba(34, 197, 94, 0.75)));
+  }
+  100% {
+    color: inherit;
+    filter: none;
+  }
 }
-.press-glow { animation: press-glow 500ms ease-out; }
+.press-glow {
+  animation: press-glow 500ms ease-out;
+}
 
 @keyframes logo-spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(1080deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(1080deg);
+  }
 }
 .logo-spin {
   animation: logo-spin 1000ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -246,11 +282,21 @@
 }
 
 @keyframes button-pop {
-  0%   { transform: scale(1); }
-  30%  { transform: scale(1.30); }
-  55%  { transform: scale(0.90); }
-  75%  { transform: scale(1.08); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.3);
+  }
+  55% {
+    transform: scale(0.9);
+  }
+  75% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 .button-pop {
   animation: button-pop 420ms ease-out;
@@ -259,9 +305,18 @@
 }
 
 @keyframes logo-pulse {
-  0%   { transform: scale(1); filter: none; }
-  40%  { transform: scale(1.06); filter: drop-shadow(0 0 8px rgba(10,125,44,0.45)); }
-  100% { transform: scale(1); filter: none; }
+  0% {
+    transform: scale(1);
+    filter: none;
+  }
+  40% {
+    transform: scale(1.06);
+    filter: drop-shadow(0 0 8px rgba(10, 125, 44, 0.45));
+  }
+  100% {
+    transform: scale(1);
+    filter: none;
+  }
 }
 .logo-pulse {
   animation: logo-pulse 700ms ease-out;
@@ -269,12 +324,19 @@
   transform-origin: center;
 }
 
-
 @keyframes like-hint-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-.like-hint-in { animation: like-hint-in 220ms ease-out; }
+.like-hint-in {
+  animation: like-hint-in 220ms ease-out;
+}
 
 /* Loading / skeleton system.
  *
@@ -283,12 +345,21 @@
  * resting gray and a gentle pulse breathes underneath, so loading reads as a
  * calm shimmer rather than a static block or a spinner. */
 @keyframes skeleton-shimmer {
-  0%   { background-position: -160% 0; }
-  100% { background-position: 160% 0; }
+  0% {
+    background-position: -160% 0;
+  }
+  100% {
+    background-position: 160% 0;
+  }
 }
 @keyframes skeleton-pulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 .skeleton-shimmer {
   background-image: linear-gradient(
@@ -299,20 +370,32 @@
   );
   background-size: 200% 100%;
   background-repeat: no-repeat;
-  animation: skeleton-shimmer 1.4s ease-in-out infinite,
-             skeleton-pulse 2.4s ease-in-out infinite;
+  animation:
+    skeleton-shimmer 1.4s ease-in-out infinite,
+    skeleton-pulse 2.4s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .skeleton-shimmer { animation: skeleton-pulse 2.4s ease-in-out infinite; }
+  .skeleton-shimmer {
+    animation: skeleton-pulse 2.4s ease-in-out infinite;
+  }
 }
 
 /* Siri-inspired ambient glow used behind the website viewer while a discovery
  * loads: a soft conic sheen that slowly rotates and breathes, giving the empty
  * frame a living "thinking" feel instead of a hard spinner. */
 @keyframes app-screen-glow {
-  0%   { transform: rotate(0deg) scale(1.25); opacity: 0.55; }
-  50%  { transform: rotate(180deg) scale(1.45); opacity: 0.9; }
-  100% { transform: rotate(360deg) scale(1.25); opacity: 0.55; }
+  0% {
+    transform: rotate(0deg) scale(1.25);
+    opacity: 0.55;
+  }
+  50% {
+    transform: rotate(180deg) scale(1.45);
+    opacity: 0.9;
+  }
+  100% {
+    transform: rotate(360deg) scale(1.25);
+    opacity: 0.55;
+  }
 }
 .app-screen-glow {
   position: absolute;
@@ -330,7 +413,9 @@
   animation: app-screen-glow 4.8s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .app-screen-glow { animation: skeleton-pulse 3s ease-in-out infinite; }
+  .app-screen-glow {
+    animation: skeleton-pulse 3s ease-in-out infinite;
+  }
 }
 
 /* =====================================================================
@@ -621,4 +706,58 @@ html[data-app-theme]:not([data-app-theme="white"]) [style*="background: #f1efe6"
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* =====================================================================
+ * Sheet system (see src/components/ui/base-sheet.tsx). vaul drives the
+ * drag with an inline transform, so these rules own only the enter/exit
+ * transition and the reduced-motion branch -- the sheet's colors and
+ * geometry are set from the --app-chrome-* tokens in React so a themed
+ * sheet and the themed bar always match.
+ * ===================================================================== */
+.app-sheet {
+  transition: transform 380ms cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+
+.app-sheet-overlay {
+  animation: app-sheet-fade 260ms ease-out;
+}
+
+@keyframes app-sheet-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Reduced motion gets a cross-fade instead of a slide: the sheet still
+ * announces its arrival, it just doesn't travel to do it. Both the class
+ * (set from useReducedMotion) and the media query are honored, so the
+ * branch holds even if a sheet renders before the hook resolves. */
+.app-sheet-instant,
+.app-sheet-instant[data-vaul-drawer] {
+  transition-duration: 1ms;
+  animation-duration: 1ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-sheet,
+  .app-sheet-overlay {
+    transition-duration: 1ms;
+    animation-duration: 1ms;
+  }
+}
+
+/* Radix (under vaul) makes the page inert while a sheet is modal by setting
+ * pointer-events: none on <body>. The bottom bar is the one exception: it
+ * stays visible under every sheet, and it sits exactly where a thumb rests,
+ * so leaving it dead would turn the most-tapped strip of the screen into a
+ * hole. Opting it back in means a tap there dismisses the open sheet (Radix
+ * sees a pointer-down outside) and lands on the slot the person aimed at. */
+/* Selector mirrors NAV_ROOT_SELECTOR in components/nav/navMetrics.ts. */
+nav[aria-label="Primary actions"] {
+  pointer-events: auto;
 }

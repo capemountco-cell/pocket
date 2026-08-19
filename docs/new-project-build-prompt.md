@@ -5,11 +5,27 @@ Claude, Cursor) to stand up the product from an empty repo. It merges the produc
 mission, architecture, design system, motion system, accessibility, performance,
 and analytics contracts into one brief.
 
-> **Status.** Milestone 1 shipped, and the design system in §6/§7/§9 is no
+> **Status.** Milestones 1 and 2 shipped. The design system in §6/§7/§9 is no
 > longer a description to build from — it was ported from the predecessor
 > codebase and now lives in `src/styles.css`, `src/lib/theme.ts`, and
-> `src/components/nav/`. Read the code first; this document explains the
+> `src/components/nav/`. The sheet system in §8 is likewise built:
+> `src/components/ui/base-sheet.tsx` plus the feature sheets in
+> `src/components/sheets/`. Read the code first; this document explains the
 > intent behind it.
+>
+> Milestone 4 is wired too, against the **existing** database rather than a new
+> one: the feed, reactions, collection, submissions and analytics all run
+> through `src/lib/discovery.ts`. That database predates this build and uses the
+> predecessor's vocabulary, so the client only ever calls brand-neutral wrappers
+> (`supabase/migrations/`). Auth is still unbuilt — everything is keyed on the
+> anonymous device id, and menu rows that need an account say so on the row.
+>
+> The catalogue lives in the predecessor app's own project
+> (`boembmgwjjdqgkcokapx`), which is Lovable-managed and therefore does not
+> appear in the Supabase dashboard's project list. A same-named,
+> schema-only project does appear there and has never held a site row — do not
+> mistake one for the other. Set `VITE_SUPABASE_PUBLISHABLE_KEY` in the
+> deployment environment; no key belongs in this repo.
 
 **How to use it**
 

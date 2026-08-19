@@ -1,10 +1,9 @@
 import { MenuIcon, ReactIcon, SendToIcon, SubmitIcon, ICON_REGISTRY } from "@/components/icons";
-import { useNavActions } from "./useNavActions";
 import { useLogoPulse } from "./useLogoPulse";
 import { BrandMark } from "./BrandMark";
 import { NavButton } from "./NavButton";
 import { NAV_BALANCED_PAD, NAV_HEIGHT } from "./navMetrics";
-import type { BottomNavProps } from "./types";
+import type { NavStyleProps } from "./types";
 
 // Visual size of each action symbol (see AppIcon). Tuned to read clearly on
 // iPhone while still leaving enough column width for a >=44px tap target at
@@ -20,20 +19,10 @@ const SURFACE = "var(--app-chrome-bg, #ffffff)";
 
 // The full-width fixed bottom bar. Preserved pixel-for-pixel — this is what
 // "Classic" means.
-export function ClassicNav(props: BottomNavProps) {
-  const {
-    onDiscover,
-    isSaved,
-    reactActive,
-    glowMenu,
-    menuUnread,
-    glowSubmit,
-    logoRef,
-    navRef,
-    logoPulseKey,
-  } = props;
-
-  const { handleMenuTap, handleReactTap, handleSendToTap, handleSubmitTap } = useNavActions(props);
+export function ClassicNav(props: NavStyleProps) {
+  const { slots, glowMenu, menuUnread, glowSubmit, logoRef, navRef, logoPulseKey } = props;
+  const { onMenuTap, onReactTap, onDiscoverTap, onSendToTap, onSubmitTap, isSaved, reactActive } =
+    slots;
 
   const setLogoRefs = useLogoPulse(logoPulseKey, logoRef);
 
@@ -69,7 +58,7 @@ export function ClassicNav(props: BottomNavProps) {
           width: "100%",
         }}
       >
-        <NavButton label="Menu" ink={INK} onClick={handleMenuTap}>
+        <NavButton label="Menu" ink={INK} onClick={onMenuTap}>
           <span style={{ position: "relative", display: "inline-flex" }}>
             <MenuIcon size={NAV_ICON_SIZE} glowKey={glowMenu} />
             {menuUnread && (
@@ -91,12 +80,12 @@ export function ClassicNav(props: BottomNavProps) {
           </span>
         </NavButton>
 
-        <NavButton label="React" ink={INK} onClick={handleReactTap} active={reactActive}>
+        <NavButton label="React" ink={INK} onClick={onReactTap} active={reactActive}>
           <ReactIcon size={NAV_ICON_SIZE} state={reactActive ? "active" : "idle"} />
         </NavButton>
 
         <button
-          onClick={onDiscover}
+          onClick={onDiscoverTap}
           aria-label="Show me a site"
           style={{
             display: "inline-flex",
@@ -115,11 +104,11 @@ export function ClassicNav(props: BottomNavProps) {
           <BrandMark size={44} logoRef={setLogoRefs} />
         </button>
 
-        <NavButton label="Send to" ink={INK} onClick={handleSendToTap} active={isSaved}>
+        <NavButton label="Send to" ink={INK} onClick={onSendToTap} active={isSaved}>
           <SendToIcon size={NAV_ICON_SIZE} state={isSaved ? "active" : "idle"} />
         </NavButton>
 
-        <NavButton label="Submit a site" ink={INK} onClick={handleSubmitTap}>
+        <NavButton label="Submit a site" ink={INK} onClick={onSubmitTap}>
           <SubmitIcon size={NAV_ICON_SIZE} glowKey={glowSubmit} />
         </NavButton>
       </div>
