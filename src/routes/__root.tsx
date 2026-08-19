@@ -11,6 +11,10 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { APP_NAME, APP_TAGLINE } from "../lib/brand";
+import { DEFAULT_NAV_STYLE } from "../lib/nav-style";
+import { Toaster } from "../components/ui/sonner";
+
 
 function NotFoundComponent() {
   return (
