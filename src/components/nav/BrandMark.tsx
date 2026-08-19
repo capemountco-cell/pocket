@@ -1,12 +1,14 @@
+import brandMarkUrl from "@/assets/brand-mark.svg";
+
 export type BrandMarkProps = {
   size?: number | undefined;
   logoRef?: ((el: HTMLSpanElement | null) => void) | undefined;
 };
 
-// The center brand mark shared by ClassicNav and ModernNav: a dark orb with
-// a pointer glyph, drawn inline so it needs no asset request and stays sharp
-// at any size. Pulled out of the nav so both styles render the exact same
-// spin/pulse choreography instead of forking it.
+// The center brand mark shared by ClassicNav and ModernNav: one self-contained
+// SVG (dark orb + white swoosh, designed for the black chrome), so there is no
+// per-theme variant to swap. Pulled out of the nav so both styles render the
+// exact same spin/pulse choreography instead of forking it.
 export function BrandMark({ size = 44, logoRef }: BrandMarkProps) {
   return (
     <span
@@ -42,29 +44,23 @@ export function BrandMark({ size = 44, logoRef }: BrandMarkProps) {
           pointerEvents: "none",
         }}
       >
-        <svg
+        <img
+          src={brandMarkUrl}
+          alt=""
           width={size}
           height={size}
-          viewBox="0 0 64 64"
-          style={{ position: "absolute", inset: 0, display: "block", pointerEvents: "none" }}
-        >
-          <defs>
-            <linearGradient
-              id="app-brand-orb"
-              x1="44"
-              y1="61"
-              x2="19"
-              y2="3"
-              gradientUnits="userSpaceOnUse"
-            >
-              <stop offset="0" stopColor="#000000" />
-              <stop offset="1" stopColor="#232323" />
-            </linearGradient>
-          </defs>
-          <circle cx="32" cy="32" r="32" fill="url(#app-brand-orb)" />
-          <path d="M32 15.5 38.9 29.1 32 32 25.1 29.1 32 15.5Z" fill="#ffffff" />
-          <path d="M32 48.5 25.1 34.9 32 32 38.9 34.9 32 48.5Z" fill="#ffffff" fillOpacity="0.55" />
-        </svg>
+          decoding="async"
+          fetchPriority="high"
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: size,
+            height: size,
+            display: "block",
+            pointerEvents: "none",
+            objectFit: "contain",
+          }}
+        />
       </span>
     </span>
   );

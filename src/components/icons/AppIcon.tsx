@@ -1,5 +1,5 @@
 import { motion, useReducedMotion, type Transition } from "motion/react";
-import { ICON_REGISTRY, ICON_VIEWBOX } from "./registry";
+import { ICON_REGISTRY, ICON_SOURCE_SIZE } from "./registry";
 import type { IconName, IconState } from "./types";
 
 // Scale applied to the symbol per state. Kept subtle and fast per the
@@ -46,9 +46,24 @@ export type AppIconProps = {
 // Shared visual primitive behind every semantic icon (MenuIcon, ReactIcon,
 // ...). Handles state animation only — press/hover/click wiring lives one
 // level up in the nav button that hosts it.
+// Shared visual primitive behind every semantic icon (MenuIcon, ReactIcon,
+// ...). Renders only each action's accent symbol -- the mascot figure in the
+// source sheet is deliberately not shown in the bar. Handles state animation
+// only; press/hover/click wiring lives one level up in the nav button that
+// hosts it.
 export function AppIcon({ name, state = "idle", size = 34, glowKey, className }: AppIconProps) {
-  const { accentColor, paths, strokeWidth = 1.9, filled } = ICON_REGISTRY[name];
+  const { src, accentColor, accent } = ICON_REGISTRY[name];
   const reduceMotion = useReducedMotion();
+
+  // Crop-and-zoom math: the source raster bakes the symbol into a flat
+  // 512x512 canvas with a lot of surrounding whitespace, at a different scale
+  // per icon. The symbol's own bounding box (see registry.ts) is scaled to the
+  // target size, then the full image is shifted behind an overflow:hidden
+  // window so only the symbol shows.
+  const scale = size / Math.max(accent.w, accent.h);
+  const renderW = accent.w * scale;
+  const renderH = accent.h * scale;
+  const imgSize = ICON_SOURCE_SIZE * scale;
 
   const isLoading = state === "loading" && !reduceMotion;
   const isSuccess = state === "success" && !reduceMotion;
@@ -60,14 +75,16 @@ export function AppIcon({ name, state = "idle", size = 34, glowKey, className }:
       style={{
         position: "relative",
         display: "inline-flex",
-        width: size,
-        height: size,
+        width: renderW,
+        height: renderH,
         flex: "0 0 auto",
       }}
       variants={GROUP_VARIANTS}
       animate={state}
       transition={reduceMotion ? { duration: 0 } : SPRING}
     >
+      {/* Symbol: solid fill, recolored via CSS mask -- always the icon's
+          assigned accent color, in every state. */}
       <motion.span
         key={glowKey ?? 0}
         aria-hidden="true"
@@ -75,6 +92,7 @@ export function AppIcon({ name, state = "idle", size = 34, glowKey, className }:
         style={{
           position: "absolute",
           inset: 0,
+          overflow: "hidden",
           ["--glow-color" as never]: accentColor,
           ["--glow-shadow" as never]: `${accentColor}bf`,
         }}
@@ -90,28 +108,24 @@ export function AppIcon({ name, state = "idle", size = 34, glowKey, className }:
           isLoading ? { duration: 1.2, repeat: Infinity, ease: "easeInOut" } : { duration: 0.18 }
         }
       >
-        <svg
-          width={size}
-          height={size}
-          viewBox={`0 0 ${ICON_VIEWBOX} ${ICON_VIEWBOX}`}
-          fill="none"
-          aria-hidden="true"
-          style={{ display: "block" }}
-        >
-          {paths.map((d) => (
-            <path
-              key={d}
-              d={d}
-              stroke={accentColor}
-              strokeWidth={strokeWidth}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          ))}
-          {filled?.map((d) => (
-            <path key={d} d={d} fill={accentColor} />
-          ))}
-        </svg>
+        <span
+          style={{
+            position: "absolute",
+            left: -accent.x * scale,
+            top: -accent.y * scale,
+            width: imgSize,
+            height: imgSize,
+            backgroundColor: accentColor,
+            WebkitMaskImage: `url(${src})`,
+            maskImage: `url(${src})`,
+            WebkitMaskSize: `${imgSize}px ${imgSize}px`,
+            maskSize: `${imgSize}px ${imgSize}px`,
+            WebkitMaskRepeat: "no-repeat",
+            maskRepeat: "no-repeat",
+            WebkitMaskPosition: "0 0",
+            maskPosition: "0 0",
+          }}
+        />
       </motion.span>
 
       {isSuccess && (
