@@ -3,8 +3,8 @@ import { ClipboardPaste } from "lucide-react";
 import { toast } from "sonner";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { probeEmbeddable } from "@/lib/embeddability";
-import { addSubmission } from "@/lib/site-prefs";
-import type { DiscoverySite } from "@/data/seed-sites";
+import { recordEvent, submitSite } from "@/lib/discovery";
+import { getDeviceId } from "@/lib/device-id";
 
 // Anything a person types has to survive being wrong: a bare hostname, a
 // stray space, a copied "www." prefix. Repair what's repairable before
@@ -19,11 +19,9 @@ function tidyUrl(raw: string): string {
 export function SubmitSheet({
   open,
   onOpenChange,
-  onSubmitted,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmitted?: ((site: DiscoverySite) => void) | undefined;
 }) {
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
@@ -47,34 +45,31 @@ export function SubmitSheet({
 
   const submit = async () => {
     const url = tidyUrl(value);
-    if (!url) return;
+    const deviceId = getDeviceId();
+    if (!url || !deviceId) return;
     setBusy(true);
     try {
       // Embeddability is measured from the origin's live headers at submit
-      // time, so the site renders correctly the first time it is served
-      // instead of failing silently inside a frame.
+      // time and stored on the row, so the site renders correctly the first
+      // time it is served instead of failing silently inside a frame.
       const probe = await probeEmbeddable({ data: { url } });
       if (!probe.ok) {
         toast(probe.reason ?? "That address didn't answer.");
         return;
       }
 
-      const site: DiscoverySite = {
-        // The resolved URL is the identity: two different pages on one
-        // domain must not collide, and re-submitting the same address should
-        // land on the same row rather than creating a second one.
-        id: `local:${probe.url}`,
-        title: probe.title,
-        domain: probe.domain,
-        url: probe.url,
-        blurb: "Added by you on this device.",
-        tag: "Yours",
+      const result = await submitSite(deviceId, probe.url, {
         embeddable: probe.embeddable,
-      };
-      addSubmission(site);
-      onSubmitted?.(site);
+        title: probe.title,
+      });
+      if (!result.ok) {
+        toast(result.reason);
+        return;
+      }
+
+      recordEvent(deviceId, "submit_success");
       onOpenChange(false);
-      toast(`${site.domain} added to your deck`);
+      toast(`${probe.domain} sent for review`);
     } catch {
       toast("Couldn't check that address just now.");
     } finally {
@@ -183,9 +178,9 @@ export function SubmitSheet({
             color: "var(--app-chrome-muted, #9c9c97)",
           }}
         >
-          We check the address before adding it, and respect sites that ask not to be embedded —
-          those are served as a preview card instead. Submissions stay on this device until the
-          shared feed opens.
+          We check the address before it goes in, and respect sites that ask not to be embedded —
+          those are served as a preview card instead. Every submission is reviewed before anyone
+          else is shown it.
         </p>
       </div>
     </BaseSheet>

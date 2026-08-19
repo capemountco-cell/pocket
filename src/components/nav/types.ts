@@ -1,4 +1,4 @@
-import type { DiscoverySite } from "@/data/seed-sites";
+import type { DiscoverySite } from "@/lib/discovery";
 
 // Every slot is a user intent, not a UI mechanism. The names, positions and
 // meanings are fixed -- muscle memory is a feature -- so this union is what

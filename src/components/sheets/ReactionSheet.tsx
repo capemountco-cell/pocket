@@ -2,7 +2,7 @@ import { ThumbsUp, ThumbsDown, EyeOff, Flag } from "lucide-react";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { SheetRow } from "@/components/ui/sheet-row";
 import { setReaction, type ReactionKind } from "@/lib/site-prefs";
-import type { DiscoverySite } from "@/data/seed-sites";
+import type { DiscoverySite } from "@/lib/discovery";
 
 const ICON = 21;
 
@@ -23,9 +23,9 @@ export function ReactionSheet({
 }) {
   const react = (kind: ReactionKind) => () => {
     if (!site) return;
-    // Tapping the reaction the site already carries clears it, so a
-    // mis-tap is undone the same way it was made.
-    setReaction(site.id, current === kind ? null : kind);
+    // Optimistic by design: the write lands in the background so the sheet
+    // can close on the tap. Re-picking "I like it" clears it server-side.
+    void setReaction(site.id, kind);
     onOpenChange(false);
     onReacted?.(kind);
   };

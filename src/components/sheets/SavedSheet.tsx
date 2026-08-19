@@ -2,7 +2,7 @@ import { ExternalLink, Trash2 } from "lucide-react";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { SheetRow } from "@/components/ui/sheet-row";
 import { toggleSaved } from "@/lib/site-prefs";
-import type { DiscoverySite } from "@/data/seed-sites";
+import type { DiscoverySite } from "@/lib/discovery";
 
 // The device's collection. Empty is a real state with its own copy, not a
 // blank panel -- it's the state most people see first.
@@ -51,7 +51,7 @@ export function SavedSheet({
             action={{
               icon: <Trash2 size={18} aria-hidden="true" />,
               label: `Remove ${site.title} from saved`,
-              onClick: () => toggleSaved(site.id),
+              onClick: () => void toggleSaved(site),
             }}
           />
         ))

@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 import { getDeviceId } from "@/lib/device-id";
 import { initTheme } from "@/lib/theme";
 import { initNavStyle, useNavStyle } from "@/lib/nav-style";
-import { initSitePrefs, useSitePrefs } from "@/lib/site-prefs";
+import { initSitePrefs } from "@/lib/site-prefs";
+import { NAV_SLOT_EVENT, recordEvent, type DiscoverySite } from "@/lib/discovery";
+import { useDiscoveryDeck, type DeckStatus } from "@/lib/use-discovery-deck";
 import { navContentReserve } from "@/components/nav/navMetrics";
-import { SEED_SITES, type DiscoverySite } from "@/data/seed-sites";
 import { BottomNav } from "@/components/nav/BottomNav";
 import { SiteViewer } from "@/components/SiteViewer";
 
@@ -28,46 +29,31 @@ export const Route = createFileRoute("/")({
 
 function DiscoveryScreen() {
   const navStyle = useNavStyle();
-  const prefs = useSitePrefs();
-  const [siteId, setSiteId] = useState<string>(() => SEED_SITES[0]?.id ?? "");
+  const [deviceId, setDeviceId] = useState<string | null>(null);
   const [logoPulseKey, setLogoPulseKey] = useState(0);
 
+  // The device id only exists in the browser, so everything keyed off it —
+  // the feed, this device's reactions, its collection — starts after mount
+  // rather than during SSR.
   useEffect(() => {
     initTheme();
     initNavStyle();
-    initSitePrefs();
-    getDeviceId();
+    const id = getDeviceId();
+    setDeviceId(id);
+    if (id) void initSitePrefs(id);
   }, []);
 
-  // What this device can be served: the curated deck plus anything submitted
-  // here, minus anything it asked never to see again.
-  const deck = useMemo(() => {
-    const all = [...SEED_SITES, ...prefs.submitted];
-    const visible = all.filter((s) => !prefs.hiddenIds.includes(s.id));
-    // Hiding the last visible site must not empty the screen.
-    return visible.length > 0 ? visible : all;
-  }, [prefs.submitted, prefs.hiddenIds]);
+  const { site, status, discover, showSite, restart, retry } = useDiscoveryDeck(deviceId);
 
-  // Identity, not index: the deck changes shape as sites are hidden or added,
-  // and an index would silently point at a different site when it does.
-  const site = deck.find((s) => s.id === siteId) ?? deck[0];
-
-  const discover = useCallback(() => {
+  const advance = () => {
     setLogoPulseKey((k) => k + 1);
-    setSiteId((currentId) => {
-      if (deck.length < 2) return deck[0]?.id ?? currentId;
-      let next = currentId;
-      while (next === currentId) {
-        next = deck[Math.floor(Math.random() * deck.length)]?.id ?? currentId;
-      }
-      return next;
-    });
-  }, [deck]);
+    discover();
+  };
 
-  const showSite = useCallback((next: DiscoverySite) => {
+  const jumpTo = (next: DiscoverySite) => {
     setLogoPulseKey((k) => k + 1);
-    setSiteId(next.id);
-  }, []);
+    showSite(next);
+  };
 
   return (
     // The nav is a SIBLING of <main>, not a child. <main> is position:fixed,
@@ -85,15 +71,131 @@ function DiscoveryScreen() {
           background: "#000000",
         }}
       >
-        {site ? <SiteViewer site={site} /> : null}
+        {site ? (
+          <SiteViewer site={site} />
+        ) : (
+          <DeckMessage
+            status={status}
+            onRestart={() => {
+              if (deviceId) recordEvent(deviceId, "catalogue_restart");
+              void restart();
+            }}
+            onRetry={retry}
+          />
+        )}
       </main>
 
       <BottomNav
-        site={site}
-        onDiscover={discover}
-        onShowSite={showSite}
+        site={site ?? undefined}
+        onDiscover={advance}
+        onShowSite={jumpTo}
+        {...(deviceId
+          ? {
+              onSlotTap: (slot) => {
+                // `discover` deliberately has no entry — the serve itself is
+                // already recorded server-side.
+                const kind = NAV_SLOT_EVENT[slot as keyof typeof NAV_SLOT_EVENT];
+                if (kind) recordEvent(deviceId, kind);
+              },
+            }
+          : {})}
         logoPulseKey={logoPulseKey}
       />
     </>
+  );
+}
+
+// The three states that are not "here is a site". Each says what happened and
+// offers the one action that resolves it -- a blank screen with a spinner is
+// not an answer to "the catalogue ran out".
+function DeckMessage({
+  status,
+  onRestart,
+  onRetry,
+}: {
+  status: DeckStatus;
+  onRestart: () => void;
+  onRetry: () => void;
+}) {
+  const copy =
+    status === "error"
+      ? {
+          title: "Couldn't reach the feed",
+          body: "The connection didn't answer. Your reactions and saved sites are safe.",
+          action: { label: "Try again", run: onRetry },
+        }
+      : status === "empty"
+        ? {
+            title: "You've seen everything",
+            body: `That's the whole catalogue for now. Start it over, or add a site ${APP_NAME} doesn't have yet.`,
+            action: { label: "Start over", run: onRestart },
+          }
+        : { title: "Finding you a site…", body: "", action: null };
+
+  return (
+    <div
+      role={status === "loading" ? "status" : "alert"}
+      aria-live="polite"
+      style={{
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        boxSizing: "border-box",
+        background: "var(--app-bg, #FAFAF7)",
+        fontFamily: "Inter, system-ui, sans-serif",
+        textAlign: "center",
+      }}
+    >
+      <div style={{ maxWidth: 320 }}>
+        <h2
+          style={{
+            margin: 0,
+            fontSize: 20,
+            fontWeight: 600,
+            letterSpacing: "-0.01em",
+            color: "var(--app-fg, #111111)",
+          }}
+        >
+          {copy.title}
+        </h2>
+        {copy.body ? (
+          <p
+            style={{
+              margin: "10px 0 0",
+              fontSize: 15,
+              lineHeight: 1.5,
+              color: "var(--app-fg-muted, #6B6B66)",
+            }}
+          >
+            {copy.body}
+          </p>
+        ) : null}
+        {copy.action ? (
+          <button
+            type="button"
+            onClick={copy.action.run}
+            style={{
+              marginTop: 18,
+              display: "inline-flex",
+              minHeight: 44,
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "0 22px",
+              borderRadius: 999,
+              border: "1px solid var(--app-border, #E6E6E1)",
+              background: "var(--app-chrome-bg, #000000)",
+              color: "var(--app-chrome-fg, #ffffff)",
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            {copy.action.label}
+          </button>
+        ) : null}
+      </div>
+    </div>
   );
 }

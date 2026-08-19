@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useSitePrefs } from "@/lib/site-prefs";
+import { recordEvent, type EventKind } from "@/lib/discovery";
+import { getDeviceId } from "@/lib/device-id";
 import type { BottomNavProps, NavSlot, NavSlots } from "./types";
 
 // Which sheet a slot opens. Closed union so a typo fails to compile rather
@@ -29,6 +31,14 @@ export function useNavActions(props: BottomNavProps) {
 
   const closeSheet = useCallback(() => setActiveSheet(null), []);
 
+  // Sheets reached from inside another sheet are real decisions too, so they
+  // are recorded on the same path as the slots that open them.
+  const openFromSheet = useCallback((sheet: SheetKey, kind: EventKind) => {
+    const deviceId = getDeviceId();
+    if (deviceId) recordEvent(deviceId, kind);
+    setActiveSheet(sheet);
+  }, []);
+
   const slots: NavSlots = useMemo(
     () => ({
       onMenuTap: open("menu", "menu"),
@@ -45,5 +55,5 @@ export function useNavActions(props: BottomNavProps) {
     [open, onDiscover, onSlotTap, prefs, site],
   );
 
-  return { slots, activeSheet, setActiveSheet, closeSheet, prefs };
+  return { slots, activeSheet, closeSheet, openFromSheet, prefs };
 }

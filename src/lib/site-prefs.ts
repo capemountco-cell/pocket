@@ -1,43 +1,41 @@
 import { useEffect, useState } from "react";
-import type { DiscoverySite } from "@/data/seed-sites";
+import {
+  fetchReactions,
+  fetchSavedSites,
+  toggleSaved as writeToggleSaved,
+  writeReaction,
+  type DiscoverySite,
+  type ReactionKind,
+} from "@/lib/discovery";
 
-// Device-local record of what this person has done with the sites they've
-// been served: how they reacted, what they kept, what they never want to see
-// again, and anything they added themselves. Anonymous and offline-first --
-// it is keyed off nothing but the browser it lives in, so every sheet works
-// signed out. Milestone 4 moves the same shapes to `reactions` /
-// `collection_items` / `submissions` rows behind the same functions, so call
-// sites never learn where the data actually lives.
+export type { ReactionKind } from "@/lib/discovery";
 
-// The reaction vocabulary is closed: a typo fails to compile rather than
-// writing a value nothing downstream knows how to read.
-export type ReactionKind = "like" | "not_for_me" | "hidden" | "report";
-
+// What this device has done with the sites it has been served, held in memory
+// for the UI to read synchronously. The database is the source of truth; this
+// is a cache in front of it, written through on every change so a tap feels
+// instant instead of waiting for a round trip.
+//
+// Nothing here is persisted locally: a reaction that only ever reached
+// localStorage would be invisible to the feed, and the feed is what a
+// reaction is *for*.
 export type SitePrefs = {
-  // siteId -> the person's most recent reaction to it.
   reactions: Record<string, ReactionKind>;
   savedIds: string[];
-  hiddenIds: string[];
-  // Sites added on this device, appended to the served deck.
-  submitted: DiscoverySite[];
+  savedSites: DiscoverySite[];
+  /** False until the first hydrate lands, so a screen can tell "none" from "not yet". */
+  ready: boolean;
 };
 
-const REACTIONS_KEY = "app_reactions_v1";
-const SAVED_KEY = "app_saved_v1";
-const HIDDEN_KEY = "app_hidden_v1";
-const SUBMITTED_KEY = "app_submissions_v1";
+const EMPTY: SitePrefs = { reactions: {}, savedIds: [], savedSites: [], ready: false };
 
-const EMPTY: SitePrefs = { reactions: {}, savedIds: [], hiddenIds: [], submitted: [] };
-
-// SSR renders the empty state and the first client effect hydrates the real
-// one, exactly like the theme and nav-style stores -- reading localStorage
-// during render would make the server and client markup disagree.
 let current: SitePrefs = EMPTY;
+let deviceId: string | null = null;
 
 type Listener = (prefs: SitePrefs) => void;
 const listeners = new Set<Listener>();
 
-function notify(): void {
+function commit(next: SitePrefs): void {
+  current = next;
   listeners.forEach((fn) => {
     try {
       fn(current);
@@ -47,38 +45,8 @@ function notify(): void {
   });
 }
 
-function readJson<T>(key: string, fallback: T): T {
-  if (typeof localStorage === "undefined") return fallback;
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-function writeJson(key: string, value: unknown): void {
-  if (typeof localStorage === "undefined") return;
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* private mode / quota: the in-memory copy still drives this session */
-  }
-}
-
 export function getSitePrefs(): SitePrefs {
   return current;
-}
-
-export function initSitePrefs(): void {
-  current = {
-    reactions: readJson<Record<string, ReactionKind>>(REACTIONS_KEY, {}),
-    savedIds: readJson<string[]>(SAVED_KEY, []),
-    hiddenIds: readJson<string[]>(HIDDEN_KEY, []),
-    submitted: readJson<DiscoverySite[]>(SUBMITTED_KEY, []),
-  };
-  notify();
 }
 
 export function subscribeSitePrefs(fn: Listener): () => void {
@@ -94,45 +62,93 @@ export function useSitePrefs(): SitePrefs {
   return prefs;
 }
 
-/** Record (or with `null`, clear) how this device reacted to one site. */
-export function setReaction(siteId: string, kind: ReactionKind | null): void {
-  const reactions = { ...current.reactions };
-  if (kind === null) delete reactions[siteId];
-  else reactions[siteId] = kind;
+/**
+ * Pull this device's reactions and collection from the database. Safe to call
+ * again — later screens re-hydrate through the same path.
+ */
+export async function initSitePrefs(id: string): Promise<void> {
+  deviceId = id;
+  try {
+    const [reactions, savedSites] = await Promise.all([fetchReactions(id), fetchSavedSites(id)]);
+    commit({
+      reactions,
+      savedSites,
+      savedIds: savedSites.map((s) => s.id),
+      ready: true,
+    });
+  } catch {
+    // A failed hydrate leaves the app usable: the feed is a separate call, and
+    // marking the cache ready keeps the sheets from claiming to still be
+    // loading forever.
+    commit({ ...current, ready: true });
+  }
+}
 
-  // "Don't show this again" is the one reaction that also changes what gets
-  // served, so it writes both halves in a single commit -- a reaction stored
-  // without its hide would leave the site in rotation and read as a bug.
-  const hiddenIds =
-    kind === "hidden"
-      ? Array.from(new Set([...current.hiddenIds, siteId]))
-      : current.hiddenIds.filter((id) => id !== siteId);
+/**
+ * Record how this device feels about a site.
+ *
+ * `like` toggles: reacting the same way twice clears it. The three negative
+ * kinds also take the site out of this device's rotation server-side, which is
+ * why the caller is told to move on afterwards.
+ */
+export async function setReaction(siteId: string, kind: ReactionKind): Promise<void> {
+  if (!deviceId) return;
 
-  current = { ...current, reactions, hiddenIds };
-  writeJson(REACTIONS_KEY, reactions);
-  writeJson(HIDDEN_KEY, hiddenIds);
-  notify();
+  // Optimistic: the sheet closes on the tap, so the bar's state must already
+  // be right by the time it does.
+  const previous = current.reactions;
+  const optimistic = { ...previous };
+  if (optimistic[siteId] === kind) delete optimistic[siteId];
+  else optimistic[siteId] = kind;
+  commit({ ...current, reactions: optimistic });
+
+  try {
+    const settled = await writeReaction(deviceId, siteId, kind);
+    const reactions = { ...current.reactions };
+    if (settled === null) delete reactions[siteId];
+    else reactions[siteId] = settled;
+    commit({ ...current, reactions });
+  } catch {
+    commit({ ...current, reactions: previous });
+  }
 }
 
 /** @returns whether the site is saved *after* the toggle. */
-export function toggleSaved(siteId: string): boolean {
-  const has = current.savedIds.includes(siteId);
-  const savedIds = has
-    ? current.savedIds.filter((id) => id !== siteId)
-    : [siteId, ...current.savedIds];
-  current = { ...current, savedIds };
-  writeJson(SAVED_KEY, savedIds);
-  notify();
-  return !has;
+export async function toggleSaved(site: DiscoverySite): Promise<boolean> {
+  if (!deviceId) return current.savedIds.includes(site.id);
+
+  const wasSaved = current.savedIds.includes(site.id);
+  const optimisticIds = wasSaved
+    ? current.savedIds.filter((id) => id !== site.id)
+    : [site.id, ...current.savedIds];
+  const optimisticSites = wasSaved
+    ? current.savedSites.filter((s) => s.id !== site.id)
+    : [site, ...current.savedSites];
+  commit({ ...current, savedIds: optimisticIds, savedSites: optimisticSites });
+
+  try {
+    const nowSaved = await writeToggleSaved(deviceId, site.id);
+    // Trust the server's answer over the guess: two devices, or two taps in
+    // flight at once, can disagree with it.
+    if (nowSaved !== !wasSaved) {
+      const savedSites = await fetchSavedSites(deviceId);
+      commit({ ...current, savedSites, savedIds: savedSites.map((s) => s.id) });
+    }
+    return nowSaved;
+  } catch {
+    commit({
+      ...current,
+      savedIds: wasSaved
+        ? [site.id, ...optimisticIds]
+        : optimisticIds.filter((id) => id !== site.id),
+      savedSites: wasSaved
+        ? [site, ...optimisticSites]
+        : optimisticSites.filter((s) => s.id !== site.id),
+    });
+    return wasSaved;
+  }
 }
 
 export function isSaved(siteId: string): boolean {
   return current.savedIds.includes(siteId);
-}
-
-export function addSubmission(site: DiscoverySite): void {
-  const submitted = [site, ...current.submitted.filter((s) => s.url !== site.url)];
-  current = { ...current, submitted };
-  writeJson(SUBMITTED_KEY, submitted);
-  notify();
 }

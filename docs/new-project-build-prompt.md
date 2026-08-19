@@ -13,10 +13,13 @@ and analytics contracts into one brief.
 > `src/components/sheets/`. Read the code first; this document explains the
 > intent behind it.
 >
-> Everything the sheets record — reactions, saved sites, hidden sites,
-> submissions — is device-local (`src/lib/site-prefs.ts`) until Milestone 4
-> stands the backend up. There is no Supabase project, no `supabase/`
-> directory, and no auth yet; rows that need one say so on the row.
+> Milestone 4 is wired too, against the **existing** Supabase project rather
+> than a new one: the feed, reactions, collection, submissions and analytics
+> all run through `src/lib/discovery.ts`. That database predates this build and
+> uses the predecessor's vocabulary, so the client only ever calls
+> brand-neutral wrappers (`supabase/migrations/`). Auth is still unbuilt —
+> everything is keyed on the anonymous device id, and menu rows that need an
+> account say so on the row.
 
 **How to use it**
 

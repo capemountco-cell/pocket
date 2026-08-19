@@ -12,8 +12,10 @@ import { toast } from "sonner";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { SheetRow, SheetRowBadge } from "@/components/ui/sheet-row";
 import { toggleSaved } from "@/lib/site-prefs";
+import { recordEvent } from "@/lib/discovery";
+import { getDeviceId } from "@/lib/device-id";
 import { APP_NAME } from "@/lib/brand";
-import type { DiscoverySite } from "@/data/seed-sites";
+import type { DiscoverySite } from "@/lib/discovery";
 
 const ICON = 21;
 
@@ -90,6 +92,8 @@ export function MenuSheet({
         disabled={!site}
         onClick={() => {
           if (!site) return;
+          const deviceId = getDeviceId();
+          if (deviceId) recordEvent(deviceId, "open_site", site.id);
           window.open(site.url, "_blank", "noopener,noreferrer");
           onOpenChange(false);
         }}
@@ -100,8 +104,9 @@ export function MenuSheet({
         disabled={!site}
         onClick={() => {
           if (!site) return;
-          const nowSaved = toggleSaved(site.id);
-          toast(nowSaved ? "Saved" : "Removed from saved");
+          void toggleSaved(site).then((nowSaved) =>
+            toast(nowSaved ? "Saved" : "Removed from saved"),
+          );
         }}
       />
       <SheetRow icon={<Palette size={ICON} />} label="Appearance" onClick={onOpenSettings} />

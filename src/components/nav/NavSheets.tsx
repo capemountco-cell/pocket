@@ -5,7 +5,8 @@ import { SubmitSheet } from "@/components/sheets/SubmitSheet";
 import { SettingsSheet } from "@/components/sheets/SettingsSheet";
 import { SavedSheet } from "@/components/sheets/SavedSheet";
 import type { SitePrefs } from "@/lib/site-prefs";
-import type { DiscoverySite } from "@/data/seed-sites";
+import type { DiscoverySite } from "@/lib/discovery";
+import type { EventKind } from "@/lib/discovery";
 import type { SheetKey } from "./useNavActions";
 
 // Every sheet the bottom bar can open, in one place, driven by a single
@@ -13,7 +14,7 @@ import type { SheetKey } from "./useNavActions";
 // one sheet can hand off to another by naming it.
 export function NavSheets({
   activeSheet,
-  setActiveSheet,
+  openFromSheet,
   closeSheet,
   site,
   prefs,
@@ -22,7 +23,7 @@ export function NavSheets({
   onShowSite,
 }: {
   activeSheet: SheetKey | null;
-  setActiveSheet: (sheet: SheetKey | null) => void;
+  openFromSheet: (sheet: SheetKey, kind: EventKind) => void;
   closeSheet: () => void;
   site: DiscoverySite | undefined;
   prefs: SitePrefs;
@@ -45,9 +46,9 @@ export function NavSheets({
         {...bind("menu")}
         site={site}
         saved={isSaved}
-        onOpenSaved={() => setActiveSheet("saved")}
-        onOpenSubmit={() => setActiveSheet("submit")}
-        onOpenSettings={() => setActiveSheet("settings")}
+        onOpenSaved={() => openFromSheet("saved", "bookmarks_open")}
+        onOpenSubmit={() => openFromSheet("submit", "submit_open")}
+        onOpenSettings={() => openFromSheet("settings", "preferences_open")}
       />
       <ReactionSheet
         {...bind("reaction")}
@@ -58,9 +59,9 @@ export function NavSheets({
         {...bind("send-to")}
         site={site}
         saved={isSaved}
-        onOpenSaved={() => setActiveSheet("saved")}
+        onOpenSaved={() => openFromSheet("saved", "bookmarks_open")}
       />
-      <SubmitSheet {...bind("submit")} onSubmitted={onShowSite} />
+      <SubmitSheet {...bind("submit")} />
       <SettingsSheet {...bind("settings")} />
       <SavedSheet {...bind("saved")} sites={savedSites} onShowSite={onShowSite} />
     </>

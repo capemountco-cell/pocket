@@ -1,11 +1,9 @@
-import { useMemo } from "react";
 import { useNavStyle } from "@/lib/nav-style";
 import { ClassicNav } from "@/components/nav/ClassicNav";
 import { ModernNav } from "@/components/nav/ModernNav";
 import { NavSheets } from "@/components/nav/NavSheets";
 import { useNavActions } from "@/components/nav/useNavActions";
 import { NAV_BALANCED_PAD, NAV_HEIGHT } from "@/components/nav/navMetrics";
-import { SEED_SITES } from "@/data/seed-sites";
 import type { BottomNavProps } from "@/components/nav/types";
 
 // navContentReserve() is a layout helper, not nav chrome -- pages import it
@@ -26,17 +24,8 @@ export type { BottomNavProps } from "@/components/nav/types";
 // *inside* the bar instead of over the screen.
 export function BottomNav(props: BottomNavProps) {
   const navStyle = useNavStyle();
-  const { slots, activeSheet, setActiveSheet, closeSheet, prefs } = useNavActions(props);
+  const { slots, activeSheet, closeSheet, openFromSheet, prefs } = useNavActions(props);
   const { site, onShowSite, ...chrome } = props;
-
-  // Saved ids resolve against everything servable: the seed deck plus
-  // anything submitted on this device.
-  const savedSites = useMemo(() => {
-    const known = [...SEED_SITES, ...prefs.submitted];
-    return prefs.savedIds
-      .map((id) => known.find((s) => s.id === id))
-      .filter((s): s is (typeof known)[number] => Boolean(s));
-  }, [prefs.savedIds, prefs.submitted]);
 
   return (
     <>
@@ -48,11 +37,11 @@ export function BottomNav(props: BottomNavProps) {
 
       <NavSheets
         activeSheet={activeSheet}
-        setActiveSheet={setActiveSheet}
+        openFromSheet={openFromSheet}
         closeSheet={closeSheet}
         site={site}
         prefs={prefs}
-        savedSites={savedSites}
+        savedSites={prefs.savedSites}
         isSaved={slots.isSaved}
         onShowSite={onShowSite ?? (() => {})}
       />

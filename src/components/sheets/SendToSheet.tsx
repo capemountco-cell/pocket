@@ -4,8 +4,10 @@ import { toast } from "sonner";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { SheetRow, SheetRowBadge } from "@/components/ui/sheet-row";
 import { toggleSaved } from "@/lib/site-prefs";
+import { recordEvent } from "@/lib/discovery";
+import { getDeviceId } from "@/lib/device-id";
 import { APP_NAME } from "@/lib/brand";
-import type { DiscoverySite } from "@/data/seed-sites";
+import type { DiscoverySite } from "@/lib/discovery";
 
 const ICON = 21;
 
@@ -31,6 +33,10 @@ export function SendToSheet({
   const copyLink = async () => {
     if (!site) return;
     const ok = await writeClipboard(site.url);
+    if (ok) {
+      const deviceId = getDeviceId();
+      if (deviceId) recordEvent(deviceId, "copy_link", site.id);
+    }
     onOpenChange(false);
     toast(ok ? "Link copied" : "Couldn't reach the clipboard");
   };
@@ -41,6 +47,8 @@ export function SendToSheet({
     try {
       if (typeof navigator !== "undefined" && "share" in navigator) {
         await navigator.share({ title: site.title, text: site.blurb, url: site.url });
+        const deviceId = getDeviceId();
+        if (deviceId) recordEvent(deviceId, "share", site.id);
         onOpenChange(false);
         return;
       }
@@ -61,8 +69,9 @@ export function SendToSheet({
         label={saved ? "Remove from saved" : "Save this site"}
         onClick={() => {
           if (!site) return;
-          const nowSaved = toggleSaved(site.id);
-          toast(nowSaved ? "Saved" : "Removed from saved");
+          void toggleSaved(site).then((nowSaved) =>
+            toast(nowSaved ? "Saved" : "Removed from saved"),
+          );
         }}
       />
       <SheetRow icon={<Copy size={ICON} />} label="Copy link" onClick={copyLink} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { DiscoverySite } from "@/data/seed-sites";
+import type { DiscoverySite } from "@/lib/discovery";
 
 // Renders one discovery full-bleed. Two presentation modes, equal in polish:
 // an embedded frame for sites that allow it, and a branded preview card for
