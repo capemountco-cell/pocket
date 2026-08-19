@@ -1,59 +1,16 @@
-import { useCallback, useMemo } from "react";
-import { Bookmark, Home, MessageCircle, User } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import { toast } from "sonner";
+import type { BottomNavProps } from "./types";
 
-export type NavSlot =
-  | { kind: "button"; id: string; icon: LucideIcon; label: string; active: boolean; onPress: () => void }
-  | { kind: "brand"; id: string; label: string; onPress: () => void };
+// The single source of truth for what a tap on each slot actually does.
+// ClassicNav and ModernNav both consume this — never fork slot behavior
+// between the two styles; extend this hook instead. Sheets and analytics
+// land here as they ship, so only this file changes when they do.
+export function useNavActions(props: BottomNavProps) {
+  const { onNav, onReact, onSendTo, onSubmit } = props;
 
-/**
- * Single source of behaviour for every nav slot. Both nav styles consume this;
- * only their chrome differs.
- */
-export function useNavActions(options: { onDiscover: () => void }): NavSlot[] {
-  const { onDiscover } = options;
-
-  const soon = useCallback((what: string) => {
-    toast(`${what} arrives in a later pass.`);
-  }, []);
-
-  return useMemo<NavSlot[]>(
-    () => [
-      {
-        kind: "button",
-        id: "home",
-        icon: Home,
-        label: "Home",
-        active: true,
-        onPress: () => soon("Home"),
-      },
-      {
-        kind: "button",
-        id: "collections",
-        icon: Bookmark,
-        label: "Saved",
-        active: false,
-        onPress: () => soon("Collections"),
-      },
-      { kind: "brand", id: "discover", label: "Next", onPress: onDiscover },
-      {
-        kind: "button",
-        id: "comments",
-        icon: MessageCircle,
-        label: "Talk",
-        active: false,
-        onPress: () => soon("Discussion"),
-      },
-      {
-        kind: "button",
-        id: "profile",
-        icon: User,
-        label: "You",
-        active: false,
-        onPress: () => soon("Your profile"),
-      },
-    ],
-    [onDiscover, soon],
-  );
+  return {
+    handleMenuTap: onNav,
+    handleReactTap: onReact,
+    handleSendToTap: onSendTo,
+    handleSubmitTap: onSubmit,
+  };
 }

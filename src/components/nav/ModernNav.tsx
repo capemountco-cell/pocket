@@ -1,80 +1,140 @@
-import { useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
-import { NAV_DOCK_HEIGHT, NAV_Z_INDEX, SAFE_BOTTOM_PAD } from "@/lib/nav-style";
+import { MenuIcon, ReactIcon, SendToIcon, SubmitIcon, ICON_REGISTRY } from "@/components/icons";
+import { useNavActions } from "./useNavActions";
+import { useLogoPulse } from "./useLogoPulse";
 import { BrandMark } from "./BrandMark";
 import { NavButton } from "./NavButton";
-import type { NavSlot } from "./useNavActions";
+import { NAV_BALANCED_PAD, NAV_HEIGHT } from "./navMetrics";
+import type { BottomNavProps } from "./types";
 
-/**
- * Compact floating dock. Translucent and tinted off the same --app-chrome-*
- * tokens via color-mix(), so it re-themes automatically. Auto-hides on scroll
- * down; returns on scroll up or on tap.
- */
-export function ModernNav({ slots }: { slots: NavSlot[] }) {
-  const reduceMotion = useReducedMotion();
-  const [hidden, setHidden] = useState(false);
-  const lastY = useRef(0);
+// Slightly smaller than Classic's 31px glyph so Modern keeps its more
+// compact composition; ~9% smaller than MODERN_BRAND_SIZE, same ratio as
+// Classic vs. its brand mark.
+const MODERN_ICON_SIZE = 24;
+const MODERN_BRAND_SIZE = 38;
 
-  useEffect(() => {
-    lastY.current = window.scrollY;
-    const onScroll = () => {
-      const y = window.scrollY;
-      const delta = y - lastY.current;
-      if (Math.abs(delta) > 6) {
-        setHidden(delta > 0 && y > 24);
-        lastY.current = y;
-      }
-    };
-    const reveal = () => setHidden(false);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("pointerdown", reveal);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("pointerdown", reveal);
-    };
-  }, []);
+// The Modern bar is solid black on every theme (see .app-modern-dock in
+// styles.css), so its ink is fixed white rather than the theme chrome token.
+const INK = "#ffffff";
+
+// Modern navigation: a full-bleed solid-black bar docked to the bottom edge
+// (no floating pill, no translucency). Reuses the exact same action logic,
+// brand mark, and button primitive as ClassicNav -- only the shell around
+// them differs: switching nav style must never duplicate business logic.
+export function ModernNav(props: BottomNavProps) {
+  const {
+    onDiscover,
+    isSaved,
+    reactActive,
+    glowMenu,
+    menuUnread,
+    glowSubmit,
+    logoRef,
+    navRef,
+    logoPulseKey,
+  } = props;
+
+  const { handleMenuTap, handleReactTap, handleSendToTap, handleSubmitTap } = useNavActions(props);
+
+  const setLogoRefs = useLogoPulse(logoPulseKey, logoRef);
 
   return (
-    <motion.nav
-      aria-label="Primary"
-      animate={
-        reduceMotion
-          ? { opacity: hidden ? 0 : 1, y: 0 }
-          : { y: hidden ? 96 : 0, opacity: hidden ? 0 : 1 }
-      }
-      initial={false}
-      transition={
-        reduceMotion
-          ? { duration: 0.18 }
-          : { type: "spring", stiffness: 420, damping: 34, mass: 0.7 }
-      }
-      className="chrome-blur fixed inset-x-3 rounded-[26px] border"
+    <nav
+      ref={navRef}
+      aria-label="Primary actions"
+      className="app-modern-dock"
       style={{
-        zIndex: NAV_Z_INDEX,
-        bottom: SAFE_BOTTOM_PAD,
-        borderColor: "color-mix(in oklab, var(--app-chrome-fg) 12%, transparent)",
-        pointerEvents: hidden ? "none" : "auto",
+        position: "fixed",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        padding: 0,
+        paddingTop: NAV_BALANCED_PAD,
+        paddingBottom: NAV_BALANCED_PAD,
+        height: NAV_HEIGHT,
+        boxSizing: "border-box",
+        // Permanent hardening: the nav is a fixed overlay that must sit on top
+        // of every view (discovery, saved, sheets). No view may hide it.
+        zIndex: 50,
       }}
     >
-      <ul
-        className="grid grid-cols-[1fr_1fr_1.65fr_1fr_1fr] items-center px-1.5"
-        style={{ minHeight: NAV_DOCK_HEIGHT }}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1.65fr 1fr 1fr",
+          alignItems: "stretch",
+          height: "100%",
+          padding: 0,
+          margin: "0 auto",
+          maxWidth: 640,
+          width: "100%",
+        }}
       >
-        {slots.map((slot) => (
-          <li key={slot.id} className="flex justify-center">
-            {slot.kind === "brand" ? (
-              <BrandMark label={slot.label} onPress={slot.onPress} />
-            ) : (
-              <NavButton
-                icon={slot.icon}
-                label={slot.label}
-                active={slot.active}
-                onPress={slot.onPress}
+        <NavButton label="Menu" ink={INK} fontSize={14} onClick={handleMenuTap}>
+          <span style={{ position: "relative", display: "inline-flex" }}>
+            <MenuIcon size={MODERN_ICON_SIZE} glowKey={glowMenu} />
+            {menuUnread && (
+              <span
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  top: -2,
+                  right: -3,
+                  width: 8,
+                  height: 8,
+                  borderRadius: 999,
+                  background: ICON_REGISTRY.menu.accentColor,
+                  border: "1.5px solid #000000",
+                  boxSizing: "content-box",
+                }}
               />
             )}
-          </li>
-        ))}
-      </ul>
-    </motion.nav>
+          </span>
+        </NavButton>
+
+        <NavButton
+          label="React"
+          ink={INK}
+          fontSize={14}
+          onClick={handleReactTap}
+          active={reactActive}
+        >
+          <ReactIcon size={MODERN_ICON_SIZE} state={reactActive ? "active" : "idle"} />
+        </NavButton>
+
+        <button
+          onClick={onDiscover}
+          aria-label="Show me a site"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minWidth: 0,
+            height: "100%",
+            padding: 0,
+            background: "transparent",
+            border: 0,
+            cursor: "pointer",
+            outline: "none",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          <BrandMark size={MODERN_BRAND_SIZE} logoRef={setLogoRefs} />
+        </button>
+
+        <NavButton
+          label="Send to"
+          ink={INK}
+          fontSize={14}
+          onClick={handleSendToTap}
+          active={isSaved}
+        >
+          <SendToIcon size={MODERN_ICON_SIZE} state={isSaved ? "active" : "idle"} />
+        </NavButton>
+
+        <NavButton label="Submit a site" ink={INK} fontSize={14} onClick={handleSubmitTap}>
+          <SubmitIcon size={MODERN_ICON_SIZE} glowKey={glowSubmit} />
+        </NavButton>
+      </div>
+    </nav>
   );
 }

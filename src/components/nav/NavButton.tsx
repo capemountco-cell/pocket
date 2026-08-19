@@ -1,33 +1,55 @@
 import { motion, useReducedMotion } from "motion/react";
-import type { LucideIcon } from "lucide-react";
 
-type NavButtonProps = {
-  icon: LucideIcon;
+// Shared tap-target primitive for every non-brand slot in both nav styles.
+// Owns the 44px minimum hit area and the spring press/hover feedback so
+// ClassicNav and ModernNav can't drift apart on motion or accessibility.
+export const NAV_TAP_TARGET = 44;
+
+export function NavButton({
+  children,
+  label,
+  onClick,
+  active,
+  ink,
+  fontSize = 16,
+}: {
+  children: React.ReactNode;
   label: string;
-  active?: boolean;
-  onPress: () => void;
-};
-
-export function NavButton({ icon: Icon, label, active = false, onPress }: NavButtonProps) {
+  onClick: () => void;
+  active?: boolean | undefined;
+  ink: string;
+  fontSize?: number | undefined;
+}) {
   const reduceMotion = useReducedMotion();
 
   return (
     <motion.button
-      type="button"
+      onClick={onClick}
+      // Spread rather than pass `undefined`: this project compiles with
+      // exactOptionalPropertyTypes, which rejects an explicit undefined for
+      // an optional prop. Omitting the keys entirely is the same behavior.
+      {...(reduceMotion ? {} : { whileTap: { scale: 0.88 }, whileHover: { scale: 1.05 } })}
+      transition={{ type: "spring", stiffness: 500, damping: 28 }}
       aria-label={label}
-      aria-current={active ? "page" : undefined}
-      onClick={onPress}
-      whileTap={reduceMotion ? { opacity: 0.6 } : { scale: 0.88 }}
-      transition={
-        reduceMotion
-          ? { duration: 0.12 }
-          : { type: "spring", stiffness: 620, damping: 26, mass: 0.6 }
-      }
-      className="flex min-h-11 min-w-11 flex-col items-center justify-center gap-1 rounded-xl bg-transparent"
-      style={{ color: active ? "var(--app-accent)" : "var(--app-chrome-muted)" }}
+      aria-pressed={active ? true : undefined}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minWidth: NAV_TAP_TARGET,
+        minHeight: NAV_TAP_TARGET,
+        height: "100%",
+        background: "transparent",
+        border: 0,
+        color: ink,
+        fontFamily: "Inter, system-ui, sans-serif",
+        fontSize,
+        cursor: "pointer",
+        padding: "0 5px",
+        WebkitTapHighlightColor: "transparent",
+      }}
     >
-      <Icon aria-hidden="true" strokeWidth={active ? 2.4 : 1.9} className="size-[22px]" />
-      <span className="text-[10px] leading-none font-medium tracking-tight">{label}</span>
+      {children}
     </motion.button>
   );
 }

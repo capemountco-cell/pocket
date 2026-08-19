@@ -1,0 +1,133 @@
+import { useEffect, useState } from "react";
+import type { DiscoverySite } from "@/data/seed-sites";
+
+// Renders one discovery full-bleed. Two presentation modes, equal in polish:
+// an embedded frame for sites that allow it, and a branded preview card for
+// sites that send X-Frame-Options / CSP frame-ancestors. A site is never
+// rejected for refusing to be framed -- see the standing policy in the build
+// brief; the header is respected, never bypassed.
+export function SiteViewer({ site }: { site: DiscoverySite }) {
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    setLoaded(false);
+  }, [site.id]);
+
+  return (
+    <div className="app-viewer-outer">
+      <div className="app-viewer-frame">
+        {site.embeddable ? (
+          <>
+            {!loaded && <div className="app-screen-glow" aria-hidden="true" />}
+            <iframe
+              key={site.id}
+              className="app-viewer-iframe"
+              src={site.url}
+              title={site.title}
+              onLoad={() => setLoaded(true)}
+              referrerPolicy="no-referrer"
+              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+            />
+          </>
+        ) : (
+          <PreviewCard site={site} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// The fallback presentation, not a downgrade: source domain, title, blurb,
+// and one obvious way to open the site in its own tab.
+function PreviewCard({ site }: { site: DiscoverySite }) {
+  return (
+    <div
+      style={{
+        height: "100%",
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "24px",
+        boxSizing: "border-box",
+        background: "var(--app-bg, #FAFAF7)",
+        overflowY: "auto",
+      }}
+    >
+      <article
+        style={{
+          width: "100%",
+          maxWidth: 420,
+          borderRadius: 20,
+          border: "1px solid var(--app-border, #E6E6E1)",
+          background: "var(--app-chrome-bg, #ffffff)",
+          padding: 22,
+          fontFamily: "Inter, system-ui, sans-serif",
+        }}
+      >
+        <p
+          style={{
+            margin: 0,
+            fontSize: 12,
+            letterSpacing: "0.02em",
+            color: "var(--app-fg-muted, #6B6B66)",
+          }}
+        >
+          {site.domain}
+        </p>
+        <h2
+          style={{
+            margin: "6px 0 0",
+            fontSize: 22,
+            lineHeight: 1.2,
+            fontWeight: 600,
+            letterSpacing: "-0.01em",
+            color: "var(--app-fg, #111111)",
+          }}
+        >
+          {site.title}
+        </h2>
+        <p
+          style={{
+            margin: "10px 0 0",
+            fontSize: 14,
+            lineHeight: 1.55,
+            color: "var(--app-fg-muted, #6B6B66)",
+          }}
+        >
+          {site.blurb}
+        </p>
+        <a
+          href={site.url}
+          target="_blank"
+          rel="noreferrer noopener"
+          style={{
+            marginTop: 18,
+            display: "flex",
+            minHeight: 44,
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 999,
+            border: "1px solid var(--app-border, #E6E6E1)",
+            fontSize: 15,
+            fontWeight: 600,
+            textDecoration: "none",
+            color: "var(--app-fg, #111111)",
+          }}
+        >
+          Open site
+        </a>
+        <p
+          style={{
+            margin: "12px 0 0",
+            fontSize: 12,
+            textAlign: "center",
+            color: "var(--app-fg-muted, #6B6B66)",
+          }}
+        >
+          This site asks not to be embedded, so it opens in its own tab.
+        </p>
+      </article>
+    </div>
+  );
+}

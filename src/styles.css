@@ -5,46 +5,18 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Token layer.
+ * Design system definition.
  *
- * Chrome tokens (--app-*) carry hardcoded light-theme sRGB fallbacks so the
- * first paint is correct before the theme engine writes clamped OKLCH values.
- * Accent ramps are generated in src/lib/theme.ts: one fixed lightness/chroma
- * ramp, hue is the only variable, chroma clamped per (L, h) to sRGB.
- * Depth comes from hairline borders and tone shifts. Never drop shadows.
- * Color carries status meaning only, never decoration.
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
  */
-
-:root {
-  --app-surface: #ffffff;
-  --app-surface-sunken: #f4f3ee;
-  --app-border: #e4e2d9;
-  --app-chrome-bg: #ffffff;
-  --app-chrome-fg: #171614;
-  --app-chrome-muted: #6f6c63;
-  --app-accent: #4a4bd6;
-  --app-accent-contrast: #ffffff;
-
-  --background: #fafaf7;
-  --foreground: #171614;
-  --radius: 0.875rem;
-
-  --app-nav-pad-bottom: max(18px, env(safe-area-inset-bottom));
-}
-
-/* Wide-gamut / modern-color path: the engine overwrites these at runtime. */
-@supports (color: oklch(0 0 0)) {
-  :root {
-    --app-surface: oklch(1 0 0);
-    --app-surface-sunken: oklch(0.968 0.005 95);
-    --app-border: oklch(0.913 0.008 95);
-    --app-chrome-bg: oklch(1 0 0);
-    --app-chrome-fg: oklch(0.19 0.006 80);
-    --app-chrome-muted: oklch(0.53 0.008 80);
-    --background: oklch(0.982 0.004 95);
-    --foreground: oklch(0.19 0.006 80);
-  }
-}
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -53,86 +25,600 @@
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
-
+  --radius-4xl: calc(var(--radius) + 16px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-surface: var(--app-surface);
-  --color-surface-sunken: var(--app-surface-sunken);
-  --color-border: var(--app-border);
-  --color-input: var(--app-border);
-  --color-ring: var(--app-accent);
-  --color-chrome-bg: var(--app-chrome-bg);
-  --color-chrome-fg: var(--app-chrome-fg);
-  --color-chrome-muted: var(--app-chrome-muted);
-  --color-accent: var(--app-accent);
-  --color-accent-foreground: var(--app-accent-contrast);
-  --color-muted: var(--app-surface-sunken);
-  --color-muted-foreground: var(--app-chrome-muted);
-  --color-card: var(--app-surface);
-  --color-card-foreground: var(--foreground);
-  --color-primary: var(--app-chrome-fg);
-  --color-primary-foreground: var(--app-surface);
-  --color-secondary: var(--app-surface-sunken);
-  --color-secondary-foreground: var(--app-chrome-fg);
-  --color-popover: var(--app-surface);
-  --color-popover-foreground: var(--foreground);
-  --color-destructive: #b4321f;
-  --color-destructive-foreground: #ffffff;
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.129 0.042 264.695);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.129 0.042 264.695);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.129 0.042 264.695);
+  --primary: oklch(0.208 0.042 265.755);
+  --primary-foreground: oklch(0.984 0.003 247.858);
+  --secondary: oklch(0.968 0.007 247.896);
+  --secondary-foreground: oklch(0.208 0.042 265.755);
+  --muted: oklch(0.968 0.007 247.896);
+  --muted-foreground: oklch(0.554 0.046 257.417);
+  --accent: oklch(0.968 0.007 247.896);
+  --accent-foreground: oklch(0.208 0.042 265.755);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: oklch(0.929 0.013 255.508);
+  --input: oklch(0.929 0.013 255.508);
+  --ring: oklch(0.704 0.04 256.788);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.984 0.003 247.858);
+  --sidebar-foreground: oklch(0.129 0.042 264.695);
+  --sidebar-primary: oklch(0.208 0.042 265.755);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.968 0.007 247.896);
+  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
+  --sidebar-border: oklch(0.929 0.013 255.508);
+  --sidebar-ring: oklch(0.704 0.04 256.788);
+}
+
+.dark {
+  --background: oklch(0.129 0.042 264.695);
+  --foreground: oklch(0.984 0.003 247.858);
+  --card: oklch(0.208 0.042 265.755);
+  --card-foreground: oklch(0.984 0.003 247.858);
+  --popover: oklch(0.208 0.042 265.755);
+  --popover-foreground: oklch(0.984 0.003 247.858);
+  --primary: oklch(0.929 0.013 255.508);
+  --primary-foreground: oklch(0.208 0.042 265.755);
+  --secondary: oklch(0.279 0.041 260.031);
+  --secondary-foreground: oklch(0.984 0.003 247.858);
+  --muted: oklch(0.279 0.041 260.031);
+  --muted-foreground: oklch(0.704 0.04 256.788);
+  --accent: oklch(0.279 0.041 260.031);
+  --accent-foreground: oklch(0.984 0.003 247.858);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.551 0.027 264.364);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.208 0.042 265.755);
+  --sidebar-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.279 0.041 260.031);
+  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
 @layer base {
   * {
-    border-color: var(--app-border);
-  }
-
-  html {
-    -webkit-text-size-adjust: 100%;
+    border-color: var(--color-border);
     -webkit-tap-highlight-color: transparent;
-    overscroll-behavior-y: none;
   }
 
-  body {
-    background-color: var(--background);
-    color: var(--foreground);
-    overscroll-behavior-y: none;
-    -webkit-font-smoothing: antialiased;
-    font-family:
-      ui-rounded, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui,
-      sans-serif;
-  }
-
-  /* No browser affordances leaking through. */
-  * {
-    scrollbar-width: none;
-  }
-  *::-webkit-scrollbar {
-    display: none;
-  }
-
+  /*
+   * Touch reliability: the viewport permits zoom (see viewport-fit=cover meta,
+   * no maximum-scale), so without this iOS Safari holds every tap for ~300ms to
+   * watch for a double-tap-zoom and drops taps that arrive in quick succession —
+   * which made the bottom toolbar (menu button especially) feel like it only
+   * registered a fraction of taps and needed repeated tapping. `manipulation`
+   * keeps panning/scrolling but removes the double-tap-zoom detection, so taps
+   * fire immediately and reliably. Scoped to interactive chrome only; the
+   * embedded site iframe is deliberately excluded so it keeps every gesture.
+   */
   button,
-  a {
+  a,
+  summary,
+  label,
+  [role="button"],
+  [role="menuitem"],
+  [role="tab"] {
     touch-action: manipulation;
   }
 
-  :focus:not(:focus-visible) {
-    outline: none;
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    overflow-x: hidden;
+    /*
+     * Kill native pull-to-refresh and the rubber-band overscroll bounce
+     * app-wide. This is a discovery app — you advance with a button, never by
+     * yanking the page down — so a downward swipe should only ever drive a
+     * sheet's drag-to-dismiss, never the browser's refresh gesture. Without
+     * this, opening a bottom sheet on iOS Safari/PWA lets pull-to-refresh fire
+     * underneath and fight the sheet drag, which is the "modal feels broken"
+     * bug. Sheets additionally lock body scroll while open (useBodyScrollLock).
+     */
+    overscroll-behavior: none;
   }
 
-  :focus-visible {
-    outline: 2px solid var(--app-accent);
-    outline-offset: 2px;
+  html {
+    overflow-x: hidden;
+    overscroll-behavior: none;
+  }
+
+  button:focus { outline: none; }
+  button:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
+
+  /* Prevent iOS auto-zoom on focus for form controls */
+  input, textarea, select {
+    font-size: 16px;
   }
 }
 
-/* Hairline border that stays 1 physical px on retina. */
-@utility hairline {
-  border-width: 1px;
-  border-style: solid;
-  border-color: var(--app-border);
+@keyframes app-sheen-slide {
+  0% { background-position: 200% 0; }
+  100% { background-position: -100% 0; }
 }
 
-@utility chrome-blur {
-  background-color: color-mix(in oklab, var(--app-chrome-bg) 78%, transparent);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+.app-sheen {
+  animation: app-sheen-slide 1.8s ease-in-out infinite;
+  opacity: 1;
+  transition: opacity 500ms ease;
+}
+.app-sheen[data-loaded="true"] {
+  animation: none;
+  opacity: 0;
+}
+
+@keyframes app-logo-pulse {
+  0%   { opacity: 0.45; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.45; }
+}
+
+.app-logo-pulse {
+  animation: app-logo-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes app-splash-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.app-splash-logo {
+  animation: app-splash-fade-in 600ms ease-out both;
+}
+
+.font-mono-num {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes press-glow {
+  0%   { color: inherit; filter: none; }
+  35%  { color: var(--glow-color, #22c55e); filter: drop-shadow(0 0 6px var(--glow-shadow, rgba(34,197,94,0.75))); }
+  100% { color: inherit; filter: none; }
+}
+.press-glow { animation: press-glow 500ms ease-out; }
+
+@keyframes logo-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(1080deg); }
+}
+.logo-spin {
+  animation: logo-spin 1000ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+  transform: translateZ(0);
+  transform-origin: center;
+  backface-visibility: hidden;
+}
+
+@keyframes button-pop {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.30); }
+  55%  { transform: scale(0.90); }
+  75%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.button-pop {
+  animation: button-pop 420ms ease-out;
+  will-change: transform;
+  transform-origin: center;
+}
+
+@keyframes logo-pulse {
+  0%   { transform: scale(1); filter: none; }
+  40%  { transform: scale(1.06); filter: drop-shadow(0 0 8px rgba(10,125,44,0.45)); }
+  100% { transform: scale(1); filter: none; }
+}
+.logo-pulse {
+  animation: logo-pulse 700ms ease-out;
+  will-change: transform, filter;
+  transform-origin: center;
+}
+
+
+@keyframes like-hint-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.like-hint-in { animation: like-hint-in 220ms ease-out; }
+
+/* Loading / skeleton system.
+ *
+ * `.skeleton-shimmer` is the shared loading affordance used by the SiteCard
+ * preview, the Saved list, and the Reader. A diagonal highlight sweeps across a
+ * resting gray and a gentle pulse breathes underneath, so loading reads as a
+ * calm shimmer rather than a static block or a spinner. */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -160% 0; }
+  100% { background-position: 160% 0; }
+}
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.7; }
+}
+.skeleton-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 255, 255, 0.65) 50%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite,
+             skeleton-pulse 2.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer { animation: skeleton-pulse 2.4s ease-in-out infinite; }
+}
+
+/* Siri-inspired ambient glow used behind the website viewer while a discovery
+ * loads: a soft conic sheen that slowly rotates and breathes, giving the empty
+ * frame a living "thinking" feel instead of a hard spinner. */
+@keyframes app-screen-glow {
+  0%   { transform: rotate(0deg) scale(1.25); opacity: 0.55; }
+  50%  { transform: rotate(180deg) scale(1.45); opacity: 0.9; }
+  100% { transform: rotate(360deg) scale(1.25); opacity: 0.55; }
+}
+.app-screen-glow {
+  position: absolute;
+  inset: -25%;
+  border-radius: 9999px;
+  pointer-events: none;
+  filter: blur(48px);
+  background: conic-gradient(
+    from 0deg,
+    rgba(10, 125, 44, 0.16),
+    rgba(56, 189, 248, 0.14),
+    rgba(168, 85, 247, 0.12),
+    rgba(10, 125, 44, 0.16)
+  );
+  animation: app-screen-glow 4.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-screen-glow { animation: skeleton-pulse 3s ease-in-out infinite; }
+}
+
+/* =====================================================================
+ * Website viewer (SiteViewer). The embedded site is framed by an outer
+ * themed surface and an inner clipping frame.
+ *
+ * Desktop: a fully contained "device-insert" card — rounded on every corner,
+ * hairline border, inset on all sides, with a very subtle seating shadow.
+ *
+ * Mobile (<=767px): the bottom is intentionally OPEN. Only the top corners
+ * are rounded; there is no bottom border/radius and no side/bottom inset, so
+ * the website is a full-bleed surface that scrolls naturally down to the
+ * toolbar instead of a page trapped in a box. The top inset uses the safe-area
+ * inset so the themed outer surface bleeds full-width into the iPhone status
+ * area with no white strip.
+ *
+ * The frame's `overflow: hidden` exists only to clip the rounded corners. A
+ * cross-origin iframe is its own scroll container, so this never blocks the
+ * embedded page's vertical scrolling. No element here captures touch/scroll
+ * gestures away from the iframe.
+ * ===================================================================== */
+.app-viewer-outer {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+  /* All chrome around the embedded site — the top safe-area strip, the
+     surface below it, and any letterboxing — is solid black on every theme
+     and every nav style. */
+  background: #000000;
+  padding: 0;
+}
+.app-viewer-frame {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 0;
+  border: 0;
+  background: #000000;
+  box-shadow: none;
+}
+.app-viewer-iframe {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  /* Momentum scrolling for the embedded page on iOS. */
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 767px) {
+  .app-viewer-outer {
+    /* Full edge-to-edge on mobile: no rounded top, no side/bottom insets --
+       the embedded website reads as a full-screen surface. The black outer
+       still bleeds into the top safe area. */
+    padding: env(safe-area-inset-top, 0px) 0 0;
+  }
+  .app-viewer-iframe {
+    border-radius: 0;
+  }
+}
+
+/* =====================================================================
+ * Modern navigation bar (see src/components/nav/ModernNav.tsx). A
+ * full-bleed solid-black rectangle docked to the bottom edge on every
+ * theme -- no floating pill, no translucency, no backdrop blur. (Staying
+ * filter-free also matters structurally: a backdrop-filter would make the
+ * bar the containing block for position:fixed descendants.)
+ * ===================================================================== */
+.app-modern-dock {
+  background: #000000;
+  border: 0;
+  box-shadow: none;
+}
+
+/* =====================================================================
+ * Solid-color theme system. White = default; non-default themes recolor
+ * the app chrome (body, toolbar, sheets, popovers, menu text, icons,
+ * links, button labels) without touching embedded site content (iframes
+ * are origin-isolated).
+ *
+ * Theme tokens are set on <html> by src/lib/theme.ts:
+ *   --app-bg, --app-fg, --app-fg-muted, --app-border, --app-accent
+ *
+ * Two-tone rule: --app-bg is a LIGHT same-hue tint of the brand color
+ * and --app-fg is a DEEP same-hue tone, so the app reads as one blended
+ * pair instead of a saturated fill + black/white text.
+ * ===================================================================== */
+
+html[data-app-theme] body {
+  background-color: var(--app-bg, var(--color-background)) !important;
+  color: var(--app-fg, var(--color-foreground));
+}
+
+/* Only override chrome surfaces when a non-default theme is active so
+ * the standard "White" look is byte-identical to before. */
+html[data-app-theme]:not([data-app-theme="white"]) {
+  color: var(--app-fg);
+}
+
+/* Re-route shadcn / Tailwind design tokens to the active theme so every
+ * utility class (bg-background, bg-card, bg-popover, text-foreground,
+ * text-muted-foreground, border-border, etc.) recolors with one swap. */
+html[data-app-theme]:not([data-app-theme="white"]) {
+  --background: var(--app-bg);
+  --foreground: var(--app-fg);
+  --card: var(--app-bg);
+  --card-foreground: var(--app-fg);
+  --popover: var(--app-bg);
+  --popover-foreground: var(--app-fg);
+  --muted: var(--app-avatar-bg, var(--app-bg));
+  --muted-foreground: var(--app-fg-muted);
+  --accent: var(--app-avatar-bg, var(--app-bg));
+  --accent-foreground: var(--app-fg);
+  --border: var(--app-border);
+  --input: var(--app-border);
+  --secondary: var(--app-avatar-bg, var(--app-bg));
+  --secondary-foreground: var(--app-fg);
+}
+
+/* Chrome surface tokens consumed DIRECTLY by the bespoke inline-styled chrome
+ * (menu sheet, toolbar, and every bottom sheet). These components set inline
+ * styles via React, which the browser serializes through the CSSOM to rgb()
+ * form, so the [style*="…#hex…"] substring overrides above can never match
+ * them. Instead each chrome component reads these variables with its original
+ * color as the var() fallback.
+ *
+ * Defined ONLY for non-default themes: on the White theme they stay unset, so
+ * every component falls back to its original hardcoded color and the White
+ * look is byte-identical to before. On any colored theme they resolve to the
+ * derived two-tone palette, so backgrounds become a light same-hue tint and
+ * all text / icons / borders become a deep same-hue tone. */
+/* Default chrome is BLACK: the app's chrome direction is a black theme
+ * (black toolbar, black sheets, white/grey ink), so these are defined at
+ * :root rather than left to per-component light fallbacks. Colored themes
+ * still override them via the block below. */
+:root {
+  --app-chrome-bg: #000000;
+  --app-chrome-fg: #ffffff;
+  --app-chrome-muted: #9c9c97;
+  --app-chrome-border: rgba(255, 255, 255, 0.14);
+  --app-chrome-avatar: #1f1f1f;
+  --app-chrome-fill: #161616;
+}
+html[data-app-theme]:not([data-app-theme="white"]) {
+  --app-chrome-bg: var(--app-bg);
+  --app-chrome-fg: var(--app-fg);
+  --app-chrome-muted: var(--app-fg-muted);
+  --app-chrome-border: var(--app-border);
+  --app-chrome-avatar: var(--app-avatar-bg, var(--app-bg));
+  --app-chrome-fill: var(--app-avatar-bg, var(--app-bg));
+}
+
+/* Force lucide / inline SVG icons that don't set explicit colors to inherit
+ * the theme foreground, so menu / toolbar / sheet header icons recolor. */
+html[data-app-theme]:not([data-app-theme="white"]) svg {
+  color: inherit;
+}
+
+/* Override inline white / cream chrome backgrounds (toolbar, sheets,
+ * popovers, account panel, paywall, etc.). Inline styles win on
+ * specificity so we use !important on a precise attribute match. */
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background: #ffffff"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background:#ffffff"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background: #fff"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background:#fff"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background: #FFFFFF"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background:#FFFFFF"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background: #FFF"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background: #f5f5f1"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background: #F2F2EC"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background: #f2f2ec"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background: #FAFAF7"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background:#FAFAF7"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background: #fafaf7"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background: #F6F6F4"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background: #f6f6f4"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background: #F1EFE6"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background: #f1efe6"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background-color: #ffffff"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background-color:#ffffff"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background-color: #fff"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background-color:#fff"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background-color: #FAFAF7"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background-color: #F6F6F4"] {
+  background-color: var(--app-bg) !important;
+}
+
+/* Same for shadcn popover content used by the downvote menu. */
+html[data-app-theme]:not([data-app-theme="white"]) [data-radix-popper-content-wrapper] > * {
+  background-color: var(--app-bg) !important;
+  color: var(--app-fg) !important;
+  border-color: var(--app-border) !important;
+}
+
+/* Override inline ink text colors (menu items, body copy, button labels). */
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #111111"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color:#111111"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #111"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color:#111"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #000"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color:#000"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #000000"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #1a1a1a"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #1a1a18"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #222"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #3a3a36"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #3d3d3d"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #444"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #333"] {
+  color: var(--app-fg) !important;
+}
+
+/* Muted/secondary text inline colors. */
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #6b6b66"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #666"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #6b7280"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #7a7a73"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #8a8a85"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #8a8a82"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #5a5a52"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #A9A9A2"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #999"] {
+  color: var(--app-fg-muted) !important;
+}
+
+/* Links default to accent (foreground) for readable contrast. */
+html[data-app-theme]:not([data-app-theme="white"]) a {
+  color: var(--app-accent);
+}
+
+/* Bonus: hairline borders inline. */
+html[data-app-theme]:not([data-app-theme="white"]) [style*="border-top: 1px solid #E8E8E2"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="border: 1px solid #E8E8E2"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="border: 1px solid #e8e8e2"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="border-color: #E8E8E2"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="border-bottom: 1px solid #E8E8E2"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="border-top:1px solid #E8E8E2"] {
+  border-color: var(--app-border) !important;
+}
+
+/* SVG icons inherit currentColor by default in lucide-react. Force common
+ * neutral inline ink colors used by toolbar / sheet headers to follow the
+ * theme foreground so every icon recolors with one swap. */
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color: #3a3a36"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="color:#3a3a36"] {
+  color: var(--app-fg) !important;
+}
+
+/* Avatar/chip light cream backgrounds get the tinted same-hue avatar bg. */
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background: #F1EFE6"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background:#F1EFE6"],
+html[data-app-theme]:not([data-app-theme="white"]) [style*="background: #f1efe6"] {
+  background-color: var(--app-avatar-bg, var(--app-bg)) !important;
+}
+
+/* =====================================================================
+ * Trademark campaign (/tm, /letter). Scoped to .tm-page so it never
+ * touches the rest of the app. Provides visible keyboard focus on links
+ * and cards, smooth in-page scroll for the "Sign the letter" jump, and a
+ * full reduced-motion opt-out.
+ * ===================================================================== */
+.tm-page {
+  scroll-behavior: smooth;
+}
+.tm-page a:focus-visible,
+.tm-page button:focus-visible,
+.tm-page input:focus-visible,
+.tm-page [tabindex]:focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.tm-page input:focus,
+.tm-page textarea:focus {
+  outline: none;
+  border-color: #1d4ed8;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tm-page {
+    scroll-behavior: auto;
+  }
+  .tm-page * {
+    animation: none !important;
+    transition: none !important;
+  }
 }
