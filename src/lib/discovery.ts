@@ -1,4 +1,5 @@
 import { supabase, type SiteRow } from "@/integrations/supabase/client";
+import type { SubmissionDestination } from "@/lib/submission-routing";
 
 // The app's whole view of the backend. Every call the UI makes goes through
 // one of these functions, so the sheets and the discovery screen never learn
@@ -289,23 +290,69 @@ export const NAV_SLOT_EVENT = {
   submit: "submit_open",
 } as const satisfies Partial<Record<string, EventKind>>;
 
-export type SubmitResult = { ok: true; queued: true } | { ok: false; reason: string };
+export type SubmitResult =
+  | {
+      ok: true;
+      queued: true;
+      /** What the classifier decided the link is, which drives what is shown. */
+      destination: SubmissionDestination;
+      /** "auto" publishes clean links; "review" queues everything for a human. */
+      moderationStatus?: string | undefined;
+    }
+  | { ok: false; reason: string };
 
 /**
  * Hand a URL to the submission queue. It is reviewed before it can be served
  * to anyone, so the honest answer here is "received", never "published".
  */
+/**
+ * Hand a link to the classifier and get back where it belongs.
+ *
+ * This used to be a bare insert into `submissions` from the browser, which
+ * meant every link arrived unclassified: no destination, no reason, no
+ * moderation status, and no way for anything to be flagged or sent to the
+ * boost path. The judging has always lived in the classify-submission edge
+ * function -- it normalises the URL, refuses unsafe ones, measures
+ * embeddability, asks Grok what the page actually is, checks it against the
+ * banned list and the auto/review setting, and only then writes the row. The
+ * insert here was going around all of it.
+ *
+ * So the function is the only way in now. It writes the row itself, which is
+ * why nothing is inserted on this side.
+ */
 export async function submitSite(
   deviceId: string,
   url: string,
-  probe: { embeddable: boolean; title: string },
+  userId?: string | undefined,
 ): Promise<SubmitResult> {
-  const { error } = await supabase.from("submissions").insert({
-    url,
-    device_id: deviceId,
-    title: probe.title,
-    is_embeddable: probe.embeddable,
+  const { data, error } = await supabase.functions.invoke<{
+    ok: boolean;
+    error?: string;
+    destination?: SubmissionDestination;
+    moderation_status?: string;
+  }>("classify-submission", {
+    body: { url, device_id: deviceId, ...(userId ? { submitted_by: userId } : {}) },
   });
-  if (error) return { ok: false, reason: "That submission couldn't be saved just now." };
-  return { ok: true, queued: true };
+
+  if (error) return { ok: false, reason: "That submission couldn't be checked just now." };
+
+  // The function answers 200 with ok:false for a link it understood and
+  // refused, so the failure cases are read from the body rather than the
+  // status.
+  if (!data?.ok) {
+    const reason =
+      data?.error === "invalid_url"
+        ? "That doesn't look like a public web address."
+        : data?.error === "missing_url"
+          ? "Enter an address first."
+          : "That submission couldn't be checked just now.";
+    return { ok: false, reason };
+  }
+
+  return {
+    ok: true,
+    queued: true,
+    destination: data.destination ?? "none",
+    ...(data.moderation_status ? { moderationStatus: data.moderation_status } : {}),
+  };
 }

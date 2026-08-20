@@ -24,7 +24,7 @@ export type { BottomNavProps } from "@/components/nav/types";
 // *inside* the bar instead of over the screen.
 export function BottomNav(props: BottomNavProps) {
   const navStyle = useNavStyle();
-  const { slots, activeSheet, closeSheet, openFromSheet, prefs, logoPulseKey } =
+  const { slots, activeSheet, closeSheet, openFromSheet, prefs, logoPulseKey, onReacted } =
     useNavActions(props);
   const { site, ...chrome } = props;
   // The pulse is owned here, not by the page, so it is applied after the
@@ -43,6 +43,7 @@ export function BottomNav(props: BottomNavProps) {
         activeSheet={activeSheet}
         openFromSheet={openFromSheet}
         closeSheet={closeSheet}
+        onReacted={onReacted}
         site={site}
         prefs={prefs}
         isSaved={slots.isSaved}

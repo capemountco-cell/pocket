@@ -3,8 +3,9 @@ import { ClipboardPaste } from "lucide-react";
 import { toast } from "sonner";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { SheetButton } from "@/components/ui/sheet-button";
-import { probeEmbeddable } from "@/lib/embeddability";
 import { recordEvent, submitSite } from "@/lib/discovery";
+import { routingCopy, type SubmissionDestination } from "@/lib/submission-routing";
+import { useAuth } from "@/lib/auth";
 import { getDeviceId } from "@/lib/device-id";
 
 // Anything a person types has to survive being wrong: a bare hostname, a
@@ -26,12 +27,15 @@ export function SubmitSheet({
 }) {
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<SubmissionDestination | null>(null);
+  const auth = useAuth();
 
   // A sheet that reopens holding the last attempt reads as broken state.
   useEffect(() => {
     if (!open) {
       setValue("");
       setBusy(false);
+      setResult(null);
     }
   }, [open]);
 
@@ -49,28 +53,21 @@ export function SubmitSheet({
     const deviceId = getDeviceId();
     if (!url || !deviceId) return;
     setBusy(true);
+    setResult(null);
     try {
-      // Embeddability is measured from the origin's live headers at submit
-      // time and stored on the row, so the site renders correctly the first
-      // time it is served instead of failing silently inside a frame.
-      const probe = await probeEmbeddable({ data: { url } });
-      if (!probe.ok) {
-        toast(probe.reason ?? "That address didn't answer.");
+      // Everything -- normalising, safety, embeddability, the Grok judgement,
+      // the banned list, the auto/review setting, the insert -- happens inside
+      // classify-submission. Nothing is decided on this side.
+      const outcome = await submitSite(deviceId, url, auth.user?.id);
+      if (!outcome.ok) {
+        toast(outcome.reason);
         return;
       }
-
-      const result = await submitSite(deviceId, probe.url, {
-        embeddable: probe.embeddable,
-        title: probe.title,
-      });
-      if (!result.ok) {
-        toast(result.reason);
-        return;
-      }
-
       recordEvent(deviceId, "submit_success");
-      onOpenChange(false);
-      toast(`${probe.domain} sent for review`);
+      // The sheet stays open on the outcome instead of closing on a toast: a
+      // link routed to the boost path has somewhere else to go, and a toast
+      // is gone before anyone has read it.
+      setResult(outcome.destination);
     } catch {
       toast("Couldn't check that address just now.");
     } finally {
@@ -85,12 +82,17 @@ export function SubmitSheet({
       title="Submit a site"
       description="Found a good corner of the web? Add it."
       footer={
-        <SheetButton onClick={() => void submit()} disabled={busy || value.trim().length === 0}>
-          {busy ? "Checking…" : "Submit"}
-        </SheetButton>
+        result ? (
+          <SheetButton onClick={() => onOpenChange(false)}>Done</SheetButton>
+        ) : (
+          <SheetButton onClick={() => void submit()} disabled={busy || value.trim().length === 0}>
+            {busy ? "Checking…" : "Submit"}
+          </SheetButton>
+        )
       }
     >
-      <div style={{ padding: "4px 20px 18px" }}>
+      {result ? <Outcome destination={result} /> : null}
+      <div style={{ padding: "4px 20px 18px", display: result ? "none" : "block" }}>
         <div
           style={{
             display: "flex",
@@ -168,5 +170,38 @@ export function SubmitSheet({
         </p>
       </div>
     </BaseSheet>
+  );
+}
+
+// What the classifier decided, said plainly. Colour carries the tone and the
+// words repeat it, so the meaning does not depend on seeing the difference
+// between a green and an amber line.
+function Outcome({ destination }: { destination: SubmissionDestination }) {
+  const copy = routingCopy(destination);
+  const ink =
+    copy.tone === "positive"
+      ? "var(--app-chrome-fg, #ffffff)"
+      : copy.tone === "neutral"
+        ? "var(--app-accent-warm, #E5C800)"
+        : "var(--app-chrome-muted, #9c9c97)";
+
+  return (
+    <div style={{ padding: "4px 20px 18px" }} role="status" aria-live="polite">
+      <p style={{ margin: 0, fontSize: 19, fontWeight: 700, letterSpacing: "-0.01em", color: ink }}>
+        {copy.title}
+      </p>
+      {copy.detail ? (
+        <p
+          style={{
+            margin: "8px 0 0",
+            fontSize: 15,
+            lineHeight: 1.45,
+            color: "var(--app-chrome-muted, #9c9c97)",
+          }}
+        >
+          {copy.detail}
+        </p>
+      ) : null}
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSitePrefs } from "@/lib/site-prefs";
+import { toast } from "sonner";
+import { useSitePrefs, type ReactionKind } from "@/lib/site-prefs";
 import { recordEvent, type EventKind } from "@/lib/discovery";
 import { getDeviceId } from "@/lib/device-id";
 import type { BottomNavProps, NavSlot, NavSlots } from "./types";
@@ -30,6 +31,21 @@ export function useNavActions(props: BottomNavProps) {
   );
 
   const closeSheet = useCallback(() => setActiveSheet(null), []);
+
+  // Saying no moves you on. "Not for me", "Don't show this again" and "Report
+  // spam" all mean the same thing about the site on screen -- you are done
+  // with it -- so leaving it up afterwards makes the tap look like it failed.
+  // A like is the one that stays: you liked it, you are presumably still
+  // looking at it, and the mark pulses instead.
+  const onReacted = useCallback(
+    (kind: ReactionKind) => {
+      if (kind === "like") return;
+      if (kind === "hidden") toast("You won't see this site again");
+      else if (kind === "report") toast("Thanks — reported for review");
+      onDiscover();
+    },
+    [onDiscover],
+  );
 
   // Liking the site on screen flashes the brand mark. Derived here rather than
   // handed down from the page: the like is made inside the reaction sheet,
@@ -85,5 +101,5 @@ export function useNavActions(props: BottomNavProps) {
     [open, onDiscover, onSlotTap, prefs, site],
   );
 
-  return { slots, activeSheet, closeSheet, openFromSheet, prefs, logoPulseKey };
+  return { slots, activeSheet, closeSheet, openFromSheet, prefs, logoPulseKey, onReacted };
 }
