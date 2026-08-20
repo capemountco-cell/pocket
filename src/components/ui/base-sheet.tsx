@@ -214,7 +214,6 @@ export function BaseSheet({
               style={{
                 flex: "0 0 auto",
                 padding: "12px 20px 4px",
-                borderTop: "1px solid var(--app-chrome-border, rgba(255,255,255,0.14))",
               }}
             >
               {footer}

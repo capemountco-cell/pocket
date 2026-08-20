@@ -77,7 +77,7 @@ export function SendToSheet({
         }}
       />
       <SheetRow icon={<Copy size={ICON} />} label="Copy link" onClick={copyLink} />
-      <SheetRow icon={<Share2 size={ICON} />} label="More…" onClick={share} />
+      <SheetRow icon={<Share2 size={ICON} />} label="Share" onClick={share} />
       <SheetRow
         icon={<Bookmark size={ICON} />}
         label="Your saved sites"
