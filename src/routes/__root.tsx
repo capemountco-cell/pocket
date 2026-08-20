@@ -86,9 +86,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: APP_TITLE },
       { name: "description", content: APP_DESCRIPTION },
       { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      // The chrome around the embedded site is solid black on every theme
+      // (see --app-chrome-bg at :root), so the browser's own bar has to be
+      // black too -- the near-white value that used to sit here drew a pale
+      // strip above a black app on every phone.
+      { name: "apple-mobile-web-app-status-bar-style", content: "black" },
       { name: "apple-mobile-web-app-title", content: APP_NAME },
-      { name: "theme-color", content: "#FAFAF7" },
+      { name: "theme-color", content: "#000000" },
 
       { property: "og:site_name", content: APP_NAME },
       { property: "og:title", content: APP_TITLE },
@@ -115,8 +119,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      // Three icon declarations, because no single format covers everything:
+      // the .ico carries 16/32/48 for browser tabs and legacy bookmarks, the
+      // SVG is what modern browsers prefer and stays sharp at any size, and
+      // iOS reads only apple-touch-icon when a page is added to the home
+      // screen. Android and installable-PWA icons come from the manifest.
+      { rel: "icon", href: "/favicon.ico", sizes: "16x16 32x32 48x48" },
+      { rel: "icon", href: "/icon.svg", type: "image/svg+xml" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
+      { rel: "manifest", href: "/site.webmanifest" },
       { rel: "canonical", href: APP_ORIGIN },
     ],
   }),

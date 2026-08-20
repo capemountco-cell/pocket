@@ -20,3 +20,11 @@ export const APP_DESCRIPTION =
 
 /** The social preview card. 1200x630, the size every platform crops from. */
 export const APP_SOCIAL_IMAGE = `${APP_ORIGIN}/og-card.png`;
+
+/**
+ * One file cannot import from here: `public/site.webmanifest` is fetched by
+ * the browser as raw JSON, so its `name`, `short_name` and `description` are
+ * literal copies of APP_NAME and APP_DESCRIPTION above. Change either of
+ * those and change the manifest in the same commit -- nothing enforces it,
+ * and the mismatch only shows up on someone's home screen.
+ */
