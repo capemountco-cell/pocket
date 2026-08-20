@@ -15,8 +15,7 @@ import { APP_DOMAIN } from "@/lib/brand";
  * src/lib/discovery.ts) are untouched and keep going to the database.
  */
 const SIMPLE_ANALYTICS_SRC = "https://scripts.simpleanalyticscdn.com/latest.js";
-const SIMPLE_ANALYTICS_NOSCRIPT =
-  "https://queue.simpleanalyticscdn.com/noscript.gif?collect-dnt=true";
+const SIMPLE_ANALYTICS_NOSCRIPT = "https://queue.simpleanalyticscdn.com/noscript.gif";
 
 /**
  * Only the live site reports.
@@ -52,13 +51,15 @@ export function isProductionHost(): boolean {
 /**
  * Analytics tags for the root route's `head()`, or nothing off production.
  *
- * `async`, the source and `data-collect-dnt` are passed through exactly as the
- * vendor specifies them -- the last of those is what makes the script honour a
- * Do Not Track header, so it is not an attribute to tidy away.
+ * Do Not Track is left at the vendor's default, which is to skip those
+ * visitors entirely. The attribute that would change that is
+ * `data-collect-dnt="true"`, and it does the opposite of what its name
+ * suggests: it tells the script to record DNT visitors anyway. It is
+ * deliberately absent, so a visitor asking not to be tracked is not counted.
  */
 export function analyticsHeadScripts(): Array<Record<string, unknown>> {
   if (!isProductionHost()) return [];
-  return [{ src: SIMPLE_ANALYTICS_SRC, async: true, "data-collect-dnt": "true" }];
+  return [{ src: SIMPLE_ANALYTICS_SRC, async: true }];
 }
 
 /**
