@@ -47,6 +47,14 @@ export function useNavActions(props: BottomNavProps) {
       onSubmitTap: open("submit", "submit"),
       onDiscoverTap: () => {
         onSlotTap?.("discover");
+        // Advancing changes the subject. Every sheet is about the site on
+        // screen -- its reactions, its share targets, the menu's save row --
+        // so leaving one open over the *next* site leaves it describing
+        // something that is no longer there. The bar stays tappable while a
+        // sheet is open (that is deliberate), which is exactly why this has
+        // to close it: without this line the tap lands, the site changes
+        // underneath, and the sheet just sits there.
+        setActiveSheet(null);
         onDiscover();
       },
       reactActive: site ? prefs.reactions[site.id] === "like" : false,
