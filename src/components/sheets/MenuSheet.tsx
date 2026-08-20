@@ -86,6 +86,12 @@ export function MenuSheet({
         disabled={!signedIn}
         {...(signedIn ? {} : { trailing: <SheetRowBadge>Needs an account</SheetRowBadge> })}
       />
+      <SheetRow
+        icon={<Compass size={ICON} />}
+        label="Explore"
+        disabled
+        trailing={<SheetRowBadge>Coming soon</SheetRowBadge>}
+      />
       {/* The collection is a place, not a panel: it has a real URL so it can
           be linked and reached by back/forward. Navigated rather than wrapped
           in a link, because an anchor around a button is neither valid HTML
@@ -98,12 +104,6 @@ export function MenuSheet({
           onOpenChange(false);
           void navigate({ to: "/saved" });
         }}
-      />
-      <SheetRow
-        icon={<Compass size={ICON} />}
-        label="Explore"
-        disabled
-        trailing={<SheetRowBadge>Coming soon</SheetRowBadge>}
       />
       <SheetRow icon={<Plus size={ICON} />} label="Post a link" onClick={onOpenSubmit} />
       <SheetRow
