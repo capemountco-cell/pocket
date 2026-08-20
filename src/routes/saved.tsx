@@ -15,7 +15,7 @@ import {
   type DiscoverySite,
   type MySubmission,
 } from "@/lib/discovery";
-import { navContentReserve } from "@/components/nav/navMetrics";
+import { APP_CONTENT_MAX_WIDTH, navContentReserve } from "@/components/nav/navMetrics";
 import { BottomNav } from "@/components/nav/BottomNav";
 
 // How many rows to pull per request. Large enough that most collections load
@@ -169,7 +169,7 @@ function SavedPage() {
           fontFamily: "Inter, system-ui, sans-serif",
         }}
       >
-        <header style={{ flex: "0 0 auto", padding: "14px 16px 0" }}>
+        <header style={{ ...COLUMN, flex: "0 0 auto", padding: "14px 16px 0" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Link
               to="/"
@@ -213,7 +213,13 @@ function SavedPage() {
         </header>
 
         <div
-          style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", padding: "12px 16px 24px" }}
+          style={{
+            ...COLUMN,
+            flex: "1 1 auto",
+            minHeight: 0,
+            overflowY: "auto",
+            padding: "12px 16px 24px",
+          }}
         >
           {loading ? (
             <Message text="Loading your collection…" />
@@ -404,6 +410,14 @@ function Message({ text, action }: { text: string; action?: { label: string; run
 function csvCell(value: string): string {
   return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
+
+// The page shares the bar's centred column so the two line up on desktop.
+const COLUMN: React.CSSProperties = {
+  width: "100%",
+  maxWidth: APP_CONTENT_MAX_WIDTH,
+  marginInline: "auto",
+  boxSizing: "border-box",
+};
 
 const CLAMP: React.CSSProperties = {
   overflow: "hidden",

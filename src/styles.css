@@ -761,3 +761,26 @@ html[data-app-theme]:not([data-app-theme="white"]) [style*="background: #f1efe6"
 nav[aria-label="Primary actions"] {
   pointer-events: auto;
 }
+
+/* On a wide screen the sheet is a centred card, not a slab pinned to the
+ * bottom edge: rounded on every corner and lifted clear of the bar, matching
+ * how the site viewer becomes a contained "device insert" at the same
+ * breakpoint. Below 768px it stays bottom-anchored with square bottom corners,
+ * which is what a sheet should be on a phone. The centring and max width live
+ * in base-sheet.tsx; only the desktop finish is here. */
+/* vaul extends every drawer with an ::after that carries its background 200%
+ * beyond the panel, so a drawer pinned to the viewport edge never shows a gap
+ * under rubber-band scroll. This sheet deliberately stops short of the edge --
+ * the bar owns that strip -- so that extension is just a dark band hanging
+ * below the card. */
+.app-sheet::after {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .app-sheet {
+    border-radius: 22px;
+    border-bottom: 1px solid var(--app-chrome-border, rgba(255, 255, 255, 0.14));
+    margin-bottom: 14px;
+  }
+}

@@ -1,6 +1,6 @@
 import { useReducedMotion } from "motion/react";
 import { Drawer } from "vaul";
-import { NAV_HEIGHT, NAV_ROOT_SELECTOR } from "@/components/nav/navMetrics";
+import { APP_CONTENT_MAX_WIDTH, NAV_HEIGHT, NAV_ROOT_SELECTOR } from "@/components/nav/navMetrics";
 
 // The ONE sheet primitive. Every feature sheet in components/sheets/ consumes
 // this; nothing else in the app touches vaul or hand-rolls a fixed overlay
@@ -90,6 +90,11 @@ export function BaseSheet({
             position: "fixed",
             left: 0,
             right: 0,
+            // left/right 0 plus auto inline margins centres a fixed element
+            // once it has a max width -- without this the sheet spans the
+            // whole desktop viewport while the bar stays a 640px column.
+            marginInline: "auto",
+            maxWidth: APP_CONTENT_MAX_WIDTH,
             bottom: bottomOffset,
             zIndex: SHEET_Z,
             display: "flex",
@@ -201,38 +206,13 @@ export function BaseSheet({
             </div>
           ) : null}
 
-          {/* Every sheet is dismissible by drag and by Escape; this is the
-              labeled target that makes it dismissible by tap for people who
-              use neither. */}
+          {/* No visible close button: the sheet is dismissed by dragging it
+              down, tapping outside it, or Escape, and an X competing with all
+              three is clutter. This one stays for assistive tech only -- it is
+              off-screen, not hidden from the accessibility tree, so a screen
+              reader still finds a labeled way out. */}
           <Drawer.Close asChild>
-            <button
-              aria-label={`Close ${title}`}
-              style={{
-                position: "absolute",
-                top: 14,
-                right: 14,
-                width: 32,
-                height: 32,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: 999,
-                border: 0,
-                background: "transparent",
-                color: "var(--app-chrome-muted, #9c9c97)",
-                cursor: "pointer",
-                WebkitTapHighlightColor: "transparent",
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-                <path
-                  d="M3.5 3.5 12.5 12.5M12.5 3.5 3.5 12.5"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
+            <button aria-label={`Close ${title}`} style={SR_ONLY} />
           </Drawer.Close>
         </Drawer.Content>
       </Drawer.Portal>
