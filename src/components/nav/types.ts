@@ -28,6 +28,11 @@ export type NavChromeProps = {
   glowSubmit?: number | undefined;
   logoRef?: React.Ref<HTMLSpanElement> | undefined;
   navRef?: React.Ref<HTMLElement> | undefined;
+  /** Bumped by the page on a user-initiated advance: the mark spins. */
+  logoSpinKey?: number | undefined;
+  /** Bumped inside the bar when the site on screen is liked: the mark pulses.
+   *  Not supplied by the page -- the like happens inside the reaction sheet,
+   *  which the bar owns and the page never sees. */
   logoPulseKey?: number | undefined;
 };
 

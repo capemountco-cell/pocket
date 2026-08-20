@@ -23,7 +23,7 @@ export const Route = createFileRoute("/")({
 function DiscoveryScreen() {
   const navStyle = useNavStyle();
   const [deviceId, setDeviceId] = useState<string | null>(null);
-  const [logoPulseKey, setLogoPulseKey] = useState(0);
+  const [logoSpinKey, setLogoSpinKey] = useState(0);
 
   // Read once, synchronously, so the deck has it before its first fetch --
   // and consumed on read, so a later reload doesn't reopen the same site.
@@ -55,7 +55,10 @@ function DiscoveryScreen() {
   );
 
   const advance = () => {
-    setLogoPulseKey((k) => k + 1);
+    // The mark is the button that was just pressed, so it turns: a full
+    // rotation is the receipt for the tap, and it lasts about as long as the
+    // next site takes to arrive.
+    setLogoSpinKey((k) => k + 1);
     discover();
   };
 
@@ -102,7 +105,7 @@ function DiscoveryScreen() {
               },
             }
           : {})}
-        logoPulseKey={logoPulseKey}
+        logoSpinKey={logoSpinKey}
       />
     </>
   );

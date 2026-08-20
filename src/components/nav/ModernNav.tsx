@@ -1,5 +1,5 @@
 import { MenuIcon, ReactIcon, SendToIcon, SubmitIcon, ICON_REGISTRY } from "@/components/icons";
-import { useLogoPulse } from "./useLogoPulse";
+import { useBrandMarkMotion } from "./useBrandMarkMotion";
 import { BrandMark } from "./BrandMark";
 import { NavButton } from "./NavButton";
 import { APP_CONTENT_MAX_WIDTH, NAV_BALANCED_PAD, NAV_HEIGHT } from "./navMetrics";
@@ -20,11 +20,12 @@ const INK = "#ffffff";
 // brand mark, and button primitive as ClassicNav -- only the shell around
 // them differs: switching nav style must never duplicate business logic.
 export function ModernNav(props: NavStyleProps) {
-  const { slots, glowMenu, menuUnread, glowSubmit, logoRef, navRef, logoPulseKey } = props;
+  const { slots, glowMenu, menuUnread, glowSubmit, logoRef, navRef, logoSpinKey, logoPulseKey } =
+    props;
   const { onMenuTap, onReactTap, onDiscoverTap, onSendToTap, onSubmitTap, isSaved, reactActive } =
     slots;
 
-  const setLogoRefs = useLogoPulse(logoPulseKey, logoRef);
+  const setLogoRefs = useBrandMarkMotion({ spinKey: logoSpinKey, pulseKey: logoPulseKey }, logoRef);
 
   return (
     <nav

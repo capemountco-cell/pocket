@@ -324,6 +324,16 @@
   transform-origin: center;
 }
 
+/* A full 1080deg turn is exactly what someone who asked for less motion does
+ * not want. Both marks stay put; the tap still registers everywhere else. */
+@media (prefers-reduced-motion: reduce) {
+  .logo-spin,
+  .logo-pulse {
+    animation: none;
+  }
+}
+
+
 @keyframes like-hint-in {
   from {
     opacity: 0;

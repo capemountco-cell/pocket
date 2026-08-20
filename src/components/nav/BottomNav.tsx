@@ -24,15 +24,19 @@ export type { BottomNavProps } from "@/components/nav/types";
 // *inside* the bar instead of over the screen.
 export function BottomNav(props: BottomNavProps) {
   const navStyle = useNavStyle();
-  const { slots, activeSheet, closeSheet, openFromSheet, prefs } = useNavActions(props);
+  const { slots, activeSheet, closeSheet, openFromSheet, prefs, logoPulseKey } =
+    useNavActions(props);
   const { site, ...chrome } = props;
+  // The pulse is owned here, not by the page, so it is applied after the
+  // spread rather than read from it.
+  const motion = { ...chrome, logoPulseKey };
 
   return (
     <>
       {navStyle === "modern" ? (
-        <ModernNav {...chrome} slots={slots} />
+        <ModernNav {...motion} slots={slots} />
       ) : (
-        <ClassicNav {...chrome} slots={slots} />
+        <ClassicNav {...motion} slots={slots} />
       )}
 
       <NavSheets
