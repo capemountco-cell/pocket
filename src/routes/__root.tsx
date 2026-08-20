@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { APP_DESCRIPTION, APP_NAME, APP_ORIGIN, APP_SOCIAL_IMAGE, APP_TITLE } from "../lib/brand";
+import { analyticsHeadScripts, analyticsNoscriptImage } from "../lib/analytics";
 import { DEFAULT_NAV_STYLE } from "../lib/nav-style";
 import { Toaster } from "../components/ui/sonner";
 
@@ -130,6 +131,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "manifest", href: "/site.webmanifest" },
       { rel: "canonical", href: APP_ORIGIN },
     ],
+    // Declared here because this is the app's only global head: every route
+    // gets it without opting in, and the router keeps ownership of the tag
+    // across client navigations instead of appending a copy on each one.
+    // Empty off production -- see src/lib/analytics.ts.
+    scripts: analyticsHeadScripts(),
   }),
 
   shellComponent: RootShell,
@@ -139,12 +145,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  // The analytics fallback pixel. In the body, not beside the script in the
+  // head: a <noscript> in <head> may only hold link, style and meta, so an
+  // <img> there is invalid and browsers hoist it into the body regardless.
+  // This is the app's only shell, so it renders once per document.
+  const noscriptImage = analyticsNoscriptImage();
+
   return (
     <html lang="en" data-app-nav={DEFAULT_NAV_STYLE}>
       <head>
         <HeadContent />
       </head>
       <body>
+        {noscriptImage ? (
+          <noscript>
+            <img src={noscriptImage.src} alt="" referrerPolicy="no-referrer-when-downgrade" />
+          </noscript>
+        ) : null}
         {children}
         <Scripts />
       </body>
