@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ClipboardPaste } from "lucide-react";
 import { toast } from "sonner";
 import { BaseSheet } from "@/components/ui/base-sheet";
+import { SheetButton } from "@/components/ui/sheet-button";
 import { probeEmbeddable } from "@/lib/embeddability";
 import { recordEvent, submitSite } from "@/lib/discovery";
 import { getDeviceId } from "@/lib/device-id";
@@ -84,30 +85,9 @@ export function SubmitSheet({
       title="Submit a site"
       description="Found a good corner of the web? Add it."
       footer={
-        <button
-          type="button"
-          onClick={submit}
-          disabled={busy || value.trim().length === 0}
-          style={{
-            display: "flex",
-            width: "100%",
-            minHeight: 52,
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: 14,
-            border: 0,
-            background: "var(--app-chrome-fill, #161616)",
-            color: "var(--app-chrome-fg, #ffffff)",
-            fontFamily: "Inter, system-ui, sans-serif",
-            fontSize: 17,
-            fontWeight: 700,
-            opacity: busy || value.trim().length === 0 ? 0.5 : 1,
-            cursor: busy || value.trim().length === 0 ? "default" : "pointer",
-            WebkitTapHighlightColor: "transparent",
-          }}
-        >
+        <SheetButton onClick={() => void submit()} disabled={busy || value.trim().length === 0}>
           {busy ? "Checking…" : "Submit"}
-        </button>
+        </SheetButton>
       }
     >
       <div style={{ padding: "4px 20px 18px" }}>
@@ -138,6 +118,10 @@ export function SubmitSheet({
             style={{
               flex: "1 1 auto",
               minWidth: 0,
+              // The field is 24px of text inside a 56px box. Centred, it left
+              // 16px of dead border above and below that looked tappable and
+              // wasn't -- stretching it means anywhere in the box focuses it.
+              alignSelf: "stretch",
               background: "transparent",
               border: 0,
               outline: "none",

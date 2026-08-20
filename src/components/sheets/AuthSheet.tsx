@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { BaseSheet } from "@/components/ui/base-sheet";
+import { SheetButton } from "@/components/ui/sheet-button";
 import { getDeviceId } from "@/lib/device-id";
 import { ensureProfile } from "@/lib/auth";
 import { recordEvent, type EventKind } from "@/lib/discovery";
@@ -192,30 +193,9 @@ export function AuthSheet({
       title="Sign in or sign up"
       description="New accounts are ready instantly — no email verification needed."
       footer={
-        <button
-          type="button"
-          onClick={() => void handleContinue()}
-          disabled={!canContinue}
-          style={{
-            display: "flex",
-            width: "100%",
-            minHeight: 52,
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: 999,
-            border: 0,
-            background: "var(--app-chrome-fg, #ffffff)",
-            color: "var(--app-chrome-bg, #000000)",
-            fontFamily: "Inter, system-ui, sans-serif",
-            fontSize: 17,
-            fontWeight: 700,
-            opacity: canContinue ? 1 : 0.5,
-            cursor: canContinue ? "pointer" : "default",
-            WebkitTapHighlightColor: "transparent",
-          }}
-        >
+        <SheetButton onClick={() => void handleContinue()} disabled={!canContinue}>
           {busy ? "Just a moment…" : "Continue"}
-        </button>
+        </SheetButton>
       }
     >
       <div style={{ padding: "4px 20px 18px" }}>

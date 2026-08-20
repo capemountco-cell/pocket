@@ -12,6 +12,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { SheetRow, SheetRowBadge } from "@/components/ui/sheet-row";
+import { SheetButton } from "@/components/ui/sheet-button";
 import { toggleSaved } from "@/lib/site-prefs";
 import { recordEvent } from "@/lib/discovery";
 import { getDeviceId } from "@/lib/device-id";
@@ -56,27 +57,19 @@ export function MenuSheet({
       header={<AccountRow auth={auth} onOpenAuth={onOpenAuth} />}
       footer={
         signedIn ? (
-          <button
-            type="button"
+          <SheetButton
+            variant="secondary"
             onClick={() => {
               const deviceId = getDeviceId();
               if (deviceId) recordEvent(deviceId, "auth_signed_out");
               void auth.signOut().then(() => toast("Signed out"));
               onOpenChange(false);
             }}
-            style={{
-              ...FOOTER_BUTTON,
-              background: "transparent",
-              color: "var(--app-chrome-fg, #ffffff)",
-              border: "1px solid var(--app-chrome-border, rgba(255,255,255,0.14))",
-            }}
           >
             Sign out
-          </button>
+          </SheetButton>
         ) : (
-          <button type="button" onClick={onOpenAuth} style={FOOTER_BUTTON}>
-            Sign up &amp; log in
-          </button>
+          <SheetButton onClick={onOpenAuth}>Sign up &amp; log in</SheetButton>
         )
       }
     >
@@ -200,7 +193,12 @@ function AccountRow({ auth, onOpenAuth }: { auth: AuthState; onOpenAuth: () => v
             type="button"
             onClick={onOpenAuth}
             style={{
-              padding: 0,
+              // 21px of underlined text is a miss waiting to happen. The
+              // padding takes the hit area to 45px and the equal negative
+              // margin gives the space straight back, so the row looks
+              // untouched and the thumb gets somewhere to land.
+              padding: "12px 0",
+              margin: "-12px 0",
               background: "transparent",
               border: 0,
               color: "var(--app-chrome-fg, #ffffff)",
@@ -218,20 +216,3 @@ function AccountRow({ auth, onOpenAuth }: { auth: AuthState; onOpenAuth: () => v
     </div>
   );
 }
-
-const FOOTER_BUTTON: React.CSSProperties = {
-  display: "flex",
-  width: "100%",
-  minHeight: 52,
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: 999,
-  border: 0,
-  background: "var(--app-chrome-fg, #ffffff)",
-  color: "var(--app-chrome-bg, #000000)",
-  fontFamily: "Inter, system-ui, sans-serif",
-  fontSize: 17,
-  fontWeight: 700,
-  cursor: "pointer",
-  WebkitTapHighlightColor: "transparent",
-};
