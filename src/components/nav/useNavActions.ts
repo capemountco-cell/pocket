@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSitePrefs } from "@/lib/site-prefs";
 import { recordEvent, type EventKind } from "@/lib/discovery";
 import { getDeviceId } from "@/lib/device-id";
@@ -30,6 +30,28 @@ export function useNavActions(props: BottomNavProps) {
   );
 
   const closeSheet = useCallback(() => setActiveSheet(null), []);
+
+  // Liking the site on screen flashes the brand mark. Derived here rather than
+  // handed down from the page: the like is made inside the reaction sheet,
+  // which this hook owns and the page never sees.
+  //
+  // The site id is part of the comparison because reactions are per site --
+  // advancing onto something this device liked earlier flips `liked` from
+  // false to true without anyone having pressed anything, and that is not a
+  // moment to celebrate.
+  const [logoPulseKey, setLogoPulseKey] = useState(0);
+  const liked = site ? prefs.reactions[site.id] === "like" : false;
+  const lastLike = useRef<{ id: string | undefined; liked: boolean }>({
+    id: site?.id,
+    liked,
+  });
+  useEffect(() => {
+    const id = site?.id;
+    if (lastLike.current.id === id && liked && !lastLike.current.liked) {
+      setLogoPulseKey((k) => k + 1);
+    }
+    lastLike.current = { id, liked };
+  }, [liked, site?.id]);
 
   // Sheets reached from inside another sheet are real decisions too, so they
   // are recorded on the same path as the slots that open them.
@@ -63,5 +85,5 @@ export function useNavActions(props: BottomNavProps) {
     [open, onDiscover, onSlotTap, prefs, site],
   );
 
-  return { slots, activeSheet, closeSheet, openFromSheet, prefs };
+  return { slots, activeSheet, closeSheet, openFromSheet, prefs, logoPulseKey };
 }
