@@ -58,7 +58,6 @@ export function MenuSheet({
       footer={
         signedIn ? (
           <SheetButton
-            variant="secondary"
             onClick={() => {
               const deviceId = getDeviceId();
               if (deviceId) recordEvent(deviceId, "auth_signed_out");
