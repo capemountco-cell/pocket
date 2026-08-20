@@ -68,6 +68,21 @@ export function BaseSheet({
       // Dragging is the gesture people reach for first on a phone; vaul's
       // snap is velocity-aware, so a flick dismisses even from near the top.
       dismissible
+      // vaul's keyboard handling writes inline `bottom` and `height` straight
+      // onto this element whenever visualViewport resizes -- and those are the
+      // two properties the layout below depends on. It set `bottom: 0`, which
+      // dropped the sheet behind the nav and took the footer with it: on the
+      // submit sheet the Submit button became unreachable the moment the
+      // keyboard had been opened once. When its own `keyboardIsOpen` flag
+      // missed the closing resize it left a stale `bottom` of a whole keyboard
+      // height instead, which floated the sheet mid-screen and pushed its top
+      // off the top of the display.
+      //
+      // Turned off, the sheet stays exactly where the styles below put it.
+      // iOS lifts position:fixed elements above the keyboard on its own -- it
+      // already does this to the bottom bar -- so a focused field still clears
+      // it without anyone writing px into the DOM behind React's back.
+      repositionInputs={false}
     >
       <Drawer.Portal>
         <Drawer.Overlay
