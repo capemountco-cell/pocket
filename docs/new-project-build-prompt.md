@@ -43,12 +43,20 @@ and one constant file** — never in code identifiers, CSS tokens, storage keys,
 table names, or event names — so a rename stays a one-line change (§1).
 
 **Trademark note.** `Pocket` was Mozilla's read-it-later product (getpocket.com,
-discontinued 2025). The trademark did not lapse with the product. Since this
-build exists partly to escape a brand-similarity takedown, treat the name as
-carrying real risk: never describe Pocket as a read-it-later or save-for-later
-tool, never use a bookmark/pocket-shaped mark or Mozilla-adjacent styling, and
-run a trademark search before buying a domain or launching publicly. The
-one-file naming rule above is what keeps a later rename cheap.
+discontinued 2025). The trademark did not lapse with the product, and this build
+exists partly to escape a brand-similarity takedown, so the name carries real
+risk. Avoid a bookmark/pocket-shaped mark or Mozilla-adjacent styling, and run a
+trademark search before buying a domain or launching publicly. The one-file
+naming rule above is what keeps a later rename cheap.
+
+> **Owner's decision, 2026-08-20.** An earlier version of this note also
+> forbade describing the product as a read-it-later or save-for-later tool.
+> That restriction is lifted at the owner's direction: saving and returning to
+> things is a real part of what this app does, and the copy is allowed to say
+> so. The risk above is unchanged and was weighed — describing the product this
+> way does make it more confusable with the discontinued Mozilla product, which
+> is a factor in a trademark dispute, not a decisive one. The naming rules in
+> §1 still stand: no other product may be named or imitated.
 
 ---
 

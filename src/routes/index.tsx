@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
+import { APP_NAME } from "@/lib/brand";
 import { getDeviceId } from "@/lib/device-id";
 import { initTheme } from "@/lib/theme";
 import { initNavStyle, useNavStyle } from "@/lib/nav-style";
@@ -13,18 +13,10 @@ import { BottomNav } from "@/components/nav/BottomNav";
 import { SiteViewer } from "@/components/SiteViewer";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: `${APP_NAME} — find one good corner of the web` },
-      {
-        name: "description",
-        content:
-          "Tap once and get a single hand-picked site, full screen. React to it, collect it, discuss it, send it on — then tap for the next one.",
-      },
-      { property: "og:title", content: `${APP_NAME} — one tap, one site` },
-      { property: "og:description", content: APP_TAGLINE },
-    ],
-  }),
+  // Title, description and the social card are set once in __root.tsx and
+  // inherited here -- the discovery screen is the site's front door, so it has
+  // nothing of its own to say that the root does not already say better.
+  head: () => ({ meta: [] }),
   component: DiscoveryScreen,
 });
 
