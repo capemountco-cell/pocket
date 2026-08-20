@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Bookmark, BookmarkCheck, Copy, Share2, Users } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { SheetRow, SheetRowBadge } from "@/components/ui/sheet-row";
@@ -29,6 +30,7 @@ export function SendToSheet({
   // The Web Share API only exists on some browsers; the row copies instead of
   // disappearing, so the same tap always sends the link somewhere.
   const [sharing, setSharing] = useState(false);
+  const navigate = useNavigate();
 
   const copyLink = async () => {
     if (!site) return;
@@ -79,7 +81,11 @@ export function SendToSheet({
       <SheetRow
         icon={<Bookmark size={ICON} />}
         label="Your saved sites"
-        onClick={() => onOpenSaved()}
+        onClick={() => {
+          onOpenSaved();
+          onOpenChange(false);
+          void navigate({ to: "/saved" });
+        }}
       />
       <SheetRow
         icon={<Users size={ICON} />}

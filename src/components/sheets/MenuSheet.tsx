@@ -8,6 +8,7 @@ import {
   Plus,
   User,
 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { SheetRow, SheetRowBadge } from "@/components/ui/sheet-row";
@@ -46,6 +47,7 @@ export function MenuSheet({
   auth: AuthState;
 }) {
   const signedIn = Boolean(auth.session);
+  const navigate = useNavigate();
   return (
     <BaseSheet
       open={open}
@@ -84,7 +86,19 @@ export function MenuSheet({
         disabled={!signedIn}
         {...(signedIn ? {} : { trailing: <SheetRowBadge>Needs an account</SheetRowBadge> })}
       />
-      <SheetRow icon={<Bookmark size={ICON} />} label="Saved sites" onClick={onOpenSaved} />
+      {/* The collection is a place, not a panel: it has a real URL so it can
+          be linked and reached by back/forward. Navigated rather than wrapped
+          in a link, because an anchor around a button is neither valid HTML
+          nor reachable by keyboard. */}
+      <SheetRow
+        icon={<Bookmark size={ICON} />}
+        label="Saved sites"
+        onClick={() => {
+          onOpenSaved();
+          onOpenChange(false);
+          void navigate({ to: "/saved" });
+        }}
+      />
       <SheetRow
         icon={<Compass size={ICON} />}
         label="Explore"

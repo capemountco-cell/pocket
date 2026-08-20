@@ -80,6 +80,18 @@ export async function fetchQueue(deviceId: string, limit = 25): Promise<Discover
   return (data ?? []).map(toDiscoverySite);
 }
 
+/**
+ * One site by id, for arriving at a specific site rather than a random one.
+ *
+ * Reads the table directly: RLS already lets anon select live sites, so this
+ * needs no function of its own.
+ */
+export async function fetchSiteById(id: string): Promise<DiscoverySite | null> {
+  const { data, error } = await supabase.from("sites").select("*").eq("id", id).maybeSingle();
+  if (error || !data) return null;
+  return toDiscoverySite(data);
+}
+
 /** Clears this device's served history so the catalogue can come round again. */
 export async function resetHistory(deviceId: string): Promise<void> {
   const { error } = await supabase.rpc("reset_discovery_history", { p_device_id: deviceId });
@@ -154,14 +166,62 @@ export async function fetchSavedIds(deviceId: string): Promise<string[]> {
   return (data ?? []).map((row) => row.site_id).filter((id): id is string => Boolean(id));
 }
 
-export async function fetchSavedSites(deviceId: string): Promise<DiscoverySite[]> {
+export async function fetchSavedSites(
+  deviceId: string,
+  from = 0,
+  limit = 100,
+): Promise<DiscoverySite[]> {
   const { data, error } = await supabase.rpc("get_my_saved_sites", {
     p_device_id: deviceId,
-    p_from: 0,
-    p_limit: 100,
+    p_from: from,
+    p_limit: limit,
   });
   if (error) throw error;
   return (data ?? []).map(toDiscoverySite);
+}
+
+/** Empty this device's collection in one call. */
+export async function clearSaved(deviceId: string): Promise<void> {
+  const { error } = await supabase.rpc("clear_saved_sites", { p_device_id: deviceId });
+  if (error) throw error;
+}
+
+/**
+ * What this device has submitted, newest first.
+ *
+ * The RPC hands back loosely-typed JSON, so the shape is narrowed here rather
+ * than at every call site -- and anything the function grows later is ignored
+ * until a screen actually asks for it.
+ */
+export type MySubmission = {
+  id: string;
+  url: string;
+  title: string | null;
+  verdict: string | null;
+  createdAt: string | null;
+};
+
+export async function fetchMySubmissions(deviceId: string): Promise<MySubmission[]> {
+  const { data, error } = await supabase.rpc("get_my_submissions", { p_device_id: deviceId });
+  if (error) throw error;
+
+  const rows = Array.isArray(data) ? data : [];
+  return rows.flatMap((row) => {
+    if (typeof row !== "object" || row === null) return [];
+    const r = row as Record<string, unknown>;
+    const id = typeof r["id"] === "string" ? r["id"] : null;
+    const url = typeof r["url"] === "string" ? r["url"] : null;
+    if (!id || !url) return [];
+    return [
+      {
+        id,
+        url,
+        title: typeof r["title"] === "string" ? r["title"] : null,
+        verdict: typeof r["verdict"] === "string" ? r["verdict"] : null,
+        createdAt: typeof r["created_at"] === "string" ? r["created_at"] : null,
+      },
+    ];
+  });
 }
 
 /**
@@ -200,6 +260,8 @@ export type EventKind =
   | "submit_success"
   | "preferences_open"
   | "bookmarks_open"
+  | "bookmarks_export"
+  | "bookmarks_clear"
   | "share"
   | "copy_link"
   | "open_site"

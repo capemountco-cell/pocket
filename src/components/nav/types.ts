@@ -38,8 +38,6 @@ export type BottomNavProps = NavChromeProps & {
   site?: DiscoverySite | undefined;
   /** Advance to the next site. Owned by the page — the deck is its state. */
   onDiscover: () => void;
-  /** Show a specific site (a saved one, or one just submitted). */
-  onShowSite?: ((site: DiscoverySite) => void) | undefined;
   /** Fired on every slot tap, before the sheet opens. Analytics lands here. */
   onSlotTap?: ((slot: NavSlot) => void) | undefined;
 };

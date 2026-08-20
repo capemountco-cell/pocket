@@ -3,12 +3,12 @@ import { ReactionSheet } from "@/components/sheets/ReactionSheet";
 import { SendToSheet } from "@/components/sheets/SendToSheet";
 import { SubmitSheet } from "@/components/sheets/SubmitSheet";
 import { SettingsSheet } from "@/components/sheets/SettingsSheet";
-import { SavedSheet } from "@/components/sheets/SavedSheet";
 import { AuthSheet } from "@/components/sheets/AuthSheet";
 import { useAuth } from "@/lib/auth";
 import type { SitePrefs } from "@/lib/site-prefs";
 import type { DiscoverySite } from "@/lib/discovery";
-import type { EventKind } from "@/lib/discovery";
+import { recordEvent, type EventKind } from "@/lib/discovery";
+import { getDeviceId } from "@/lib/device-id";
 import type { SheetKey } from "./useNavActions";
 
 // Every sheet the bottom bar can open, in one place, driven by a single
@@ -20,22 +20,25 @@ export function NavSheets({
   closeSheet,
   site,
   prefs,
-  savedSites,
   isSaved,
-  onShowSite,
 }: {
   activeSheet: SheetKey | null;
   openFromSheet: (sheet: SheetKey, kind: EventKind) => void;
   closeSheet: () => void;
   site: DiscoverySite | undefined;
   prefs: SitePrefs;
-  savedSites: DiscoverySite[];
   isSaved: boolean;
-  onShowSite: (site: DiscoverySite) => void;
 }) {
   // Who is signed in, read once here and handed to the sheets that show it,
   // so two sheets can never disagree about it.
   const auth = useAuth();
+
+  // The collection is a route now, so opening it records the event without
+  // switching sheets -- the sheet closes itself and navigates.
+  const recordSheetEvent = (kind: EventKind) => {
+    const deviceId = getDeviceId();
+    if (deviceId) recordEvent(deviceId, kind);
+  };
 
   // BaseSheet's own close paths (drag, Escape, backdrop, close button) all
   // report through onOpenChange, so closing is expressed once per sheet.
@@ -52,7 +55,7 @@ export function NavSheets({
         {...bind("menu")}
         site={site}
         saved={isSaved}
-        onOpenSaved={() => openFromSheet("saved", "bookmarks_open")}
+        onOpenSaved={() => recordSheetEvent("bookmarks_open")}
         onOpenSubmit={() => openFromSheet("submit", "submit_open")}
         onOpenSettings={() => openFromSheet("settings", "preferences_open")}
         onOpenAuth={() => openFromSheet("auth", "auth_open")}
@@ -67,11 +70,10 @@ export function NavSheets({
         {...bind("send-to")}
         site={site}
         saved={isSaved}
-        onOpenSaved={() => openFromSheet("saved", "bookmarks_open")}
+        onOpenSaved={() => recordSheetEvent("bookmarks_open")}
       />
       <SubmitSheet {...bind("submit")} />
       <SettingsSheet {...bind("settings")} />
-      <SavedSheet {...bind("saved")} sites={savedSites} onShowSite={onShowSite} />
       <AuthSheet {...bind("auth")} />
     </>
   );
