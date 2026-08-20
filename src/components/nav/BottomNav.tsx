@@ -25,7 +25,7 @@ export type { BottomNavProps } from "@/components/nav/types";
 export function BottomNav(props: BottomNavProps) {
   const navStyle = useNavStyle();
   const { slots, activeSheet, closeSheet, openFromSheet, prefs } = useNavActions(props);
-  const { site, onShowSite, ...chrome } = props;
+  const { site, ...chrome } = props;
 
   return (
     <>
@@ -41,9 +41,7 @@ export function BottomNav(props: BottomNavProps) {
         closeSheet={closeSheet}
         site={site}
         prefs={prefs}
-        savedSites={prefs.savedSites}
         isSaved={slots.isSaved}
-        onShowSite={onShowSite ?? (() => {})}
       />
     </>
   );

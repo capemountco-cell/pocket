@@ -5,8 +5,9 @@ import { getDeviceId } from "@/lib/device-id";
 import { initTheme } from "@/lib/theme";
 import { initNavStyle, useNavStyle } from "@/lib/nav-style";
 import { initSitePrefs } from "@/lib/site-prefs";
-import { NAV_SLOT_EVENT, recordEvent, type DiscoverySite } from "@/lib/discovery";
+import { NAV_SLOT_EVENT, recordEvent } from "@/lib/discovery";
 import { useDiscoveryDeck, type DeckStatus } from "@/lib/use-discovery-deck";
+import { OPEN_SITE_KEY } from "@/routes/saved";
 import { navContentReserve } from "@/components/nav/navMetrics";
 import { BottomNav } from "@/components/nav/BottomNav";
 import { SiteViewer } from "@/components/SiteViewer";
@@ -32,6 +33,19 @@ function DiscoveryScreen() {
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [logoPulseKey, setLogoPulseKey] = useState(0);
 
+  // Read once, synchronously, so the deck has it before its first fetch --
+  // and consumed on read, so a later reload doesn't reopen the same site.
+  const [requestedSiteId] = useState<string | null>(() => {
+    if (typeof sessionStorage === "undefined") return null;
+    try {
+      const id = sessionStorage.getItem(OPEN_SITE_KEY);
+      if (id) sessionStorage.removeItem(OPEN_SITE_KEY);
+      return id;
+    } catch {
+      return null;
+    }
+  });
+
   // The device id only exists in the browser, so everything keyed off it —
   // the feed, this device's reactions, its collection — starts after mount
   // rather than during SSR.
@@ -43,16 +57,14 @@ function DiscoveryScreen() {
     if (id) void initSitePrefs(id);
   }, []);
 
-  const { site, status, discover, showSite, restart, retry } = useDiscoveryDeck(deviceId);
+  const { site, status, discover, showSite, restart, retry } = useDiscoveryDeck(
+    deviceId,
+    requestedSiteId,
+  );
 
   const advance = () => {
     setLogoPulseKey((k) => k + 1);
     discover();
-  };
-
-  const jumpTo = (next: DiscoverySite) => {
-    setLogoPulseKey((k) => k + 1);
-    showSite(next);
   };
 
   return (
@@ -88,7 +100,6 @@ function DiscoveryScreen() {
       <BottomNav
         site={site ?? undefined}
         onDiscover={advance}
-        onShowSite={jumpTo}
         {...(deviceId
           ? {
               onSlotTap: (slot) => {

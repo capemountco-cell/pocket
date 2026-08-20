@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchQueue, recordServe, resetHistory, type DiscoverySite } from "@/lib/discovery";
+import {
+  fetchQueue,
+  fetchSiteById,
+  recordServe,
+  resetHistory,
+  type DiscoverySite,
+} from "@/lib/discovery";
 import { isSupabaseConfigured } from "@/integrations/supabase/client";
 
 // Fetch this many candidates at a time. Large enough that a run of taps never
@@ -22,7 +28,7 @@ export type DeckStatus = "loading" | "ready" | "empty" | "error" | "unconfigured
  * state, not a failure — the caller is offered a restart rather than being
  * left on a blank screen.
  */
-export function useDiscoveryDeck(deviceId: string | null) {
+export function useDiscoveryDeck(deviceId: string | null, requestedSiteId?: string | null) {
   const [site, setSite] = useState<DiscoverySite | null>(null);
   const [status, setStatus] = useState<DeckStatus>("loading");
   const queue = useRef<DiscoverySite[]>([]);
@@ -79,8 +85,26 @@ export function useDiscoveryDeck(deviceId: string | null) {
       setStatus("unconfigured");
       return;
     }
+
+    // Arriving with a specific site in mind (from the collection) must not race
+    // the queue's own first serve -- whichever landed last used to win, so the
+    // requested site was usually overwritten by a random one. Serving it here,
+    // before the buffer fills, removes the race entirely.
+    if (requestedSiteId) {
+      void fetchSiteById(requestedSiteId).then((requested) => {
+        if (requested) {
+          serve(deviceId, requested);
+          setStatus("ready");
+          void refill(deviceId, { serveNext: false });
+        } else {
+          void refill(deviceId, { serveNext: true });
+        }
+      });
+      return;
+    }
+
     void refill(deviceId, { serveNext: true });
-  }, [deviceId, refill]);
+  }, [deviceId, refill, serve, requestedSiteId]);
 
   /** Advance to the next site. */
   const discover = useCallback(() => {
