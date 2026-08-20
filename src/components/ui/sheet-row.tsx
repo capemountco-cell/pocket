@@ -6,8 +6,6 @@ import { motion, useReducedMotion } from "motion/react";
 // implementations -- a second lookalike would be the defect, not the shortcut.
 export const SHEET_ROW_HEIGHT = 56;
 
-const HAIRLINE = "1px solid var(--app-chrome-border, rgba(255,255,255,0.14))";
-
 export type SheetRowAction = {
   icon: React.ReactNode;
   /** Accessible name — the action is icon-only. */
@@ -61,8 +59,9 @@ export function SheetRow({
         alignItems: "center",
         gap: 14,
         // A <button> shrink-wraps its content even as a flex container, so the
-        // width is stated explicitly -- without it the row's hairline stops
-        // at the end of the label instead of spanning the sheet.
+        // width is stated explicitly -- without it the tap target and the
+        // trailing slot stop at the end of the label instead of spanning the
+        // sheet, and a short label would take a tap only on the text.
         width: "100%",
         flex: "1 1 auto",
         minWidth: 0,
@@ -70,9 +69,6 @@ export function SheetRow({
         padding: action ? "0 0 0 20px" : "0 20px",
         background: "transparent",
         border: 0,
-        // With a sibling action the hairline belongs to the wrapper, so the
-        // rule spans the full row instead of stopping at the label.
-        borderTop: action ? 0 : HAIRLINE,
         color: ink,
         opacity: disabled ? 0.45 : 1,
         fontFamily: "Inter, system-ui, sans-serif",
@@ -107,7 +103,7 @@ export function SheetRow({
   if (!action) return button;
 
   return (
-    <div style={{ display: "flex", alignItems: "stretch", borderTop: HAIRLINE }}>
+    <div style={{ display: "flex", alignItems: "stretch" }}>
       {button}
       <button
         type="button"
