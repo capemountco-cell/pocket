@@ -15,8 +15,9 @@ a native iOS app; 375–390px is the target, 320px the floor.
 
 - **No reference to any other discovery, bookmarking, or read-it-later product**
   anywhere — component names, comments, routes, meta tags, titles, copy, alt text,
-  README. No "successor to X" framing. Never describe Pocket as a read-it-later
-  or save-for-later tool.
+  README. No "successor to X" framing. (Describing *this* product as a
+  read-it-later or save-for-later tool is allowed — that restriction was lifted
+  by the owner on 2026-08-20. Naming or imitating another product is not.)
 - Brand name lives in **one file**: `src/lib/brand.ts` (`APP_NAME`, `APP_TAGLINE`,
   `APP_DOMAIN`). Every user-facing string imports from it.
 - Identifiers stay brand-neutral: CSS `--app-chrome-fg/-bg`, `--app-accent`,

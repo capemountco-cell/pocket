@@ -11,7 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { APP_NAME, APP_TAGLINE } from "../lib/brand";
+import { APP_DESCRIPTION, APP_NAME, APP_ORIGIN, APP_SOCIAL_IMAGE, APP_TITLE } from "../lib/brand";
 import { DEFAULT_NAV_STYLE } from "../lib/nav-style";
 import { Toaster } from "../components/ui/sonner";
 
@@ -83,15 +83,32 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "viewport",
         content: "width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1",
       },
-      { title: `${APP_NAME} — one tap, one site` },
-      { name: "description", content: APP_TAGLINE },
+      { title: APP_TITLE },
+      { name: "description", content: APP_DESCRIPTION },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: APP_NAME },
       { name: "theme-color", content: "#FAFAF7" },
-      { property: "og:title", content: `${APP_NAME} — one tap, one site` },
-      { property: "og:description", content: APP_TAGLINE },
+
+      { property: "og:site_name", content: APP_NAME },
+      { property: "og:title", content: APP_TITLE },
+      { property: "og:description", content: APP_DESCRIPTION },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: APP_ORIGIN },
+      // A card without an image is the failure this block exists to prevent:
+      // twitter:card already promised a large image, and every share rendered
+      // as a bare link because nothing supplied one. Absolute URLs only --
+      // crawlers do not resolve relative paths.
+      { property: "og:image", content: APP_SOCIAL_IMAGE },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: `${APP_NAME} — ${APP_DESCRIPTION}` },
+
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: APP_TITLE },
+      { name: "twitter:description", content: APP_DESCRIPTION },
+      { name: "twitter:image", content: APP_SOCIAL_IMAGE },
+      { name: "twitter:image:alt", content: `${APP_NAME} — ${APP_DESCRIPTION}` },
     ],
     links: [
       {
@@ -99,6 +116,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
+      { rel: "canonical", href: APP_ORIGIN },
     ],
   }),
 
