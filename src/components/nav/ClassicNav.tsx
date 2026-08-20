@@ -2,7 +2,7 @@ import { MenuIcon, ReactIcon, SendToIcon, SubmitIcon, ICON_REGISTRY } from "@/co
 import { useLogoPulse } from "./useLogoPulse";
 import { BrandMark } from "./BrandMark";
 import { NavButton } from "./NavButton";
-import { NAV_BALANCED_PAD, NAV_HEIGHT } from "./navMetrics";
+import { APP_CONTENT_MAX_WIDTH, NAV_BALANCED_PAD, NAV_HEIGHT } from "./navMetrics";
 import type { NavStyleProps } from "./types";
 
 // Visual size of each action symbol (see AppIcon). Tuned to read clearly on
@@ -54,7 +54,7 @@ export function ClassicNav(props: NavStyleProps) {
           height: "100%",
           padding: 0,
           margin: "0 auto",
-          maxWidth: 640,
+          maxWidth: APP_CONTENT_MAX_WIDTH,
           width: "100%",
         }}
       >
