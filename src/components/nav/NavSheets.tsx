@@ -5,7 +5,7 @@ import { SubmitSheet } from "@/components/sheets/SubmitSheet";
 import { SettingsSheet } from "@/components/sheets/SettingsSheet";
 import { AuthSheet } from "@/components/sheets/AuthSheet";
 import { useAuth } from "@/lib/auth";
-import type { SitePrefs } from "@/lib/site-prefs";
+import type { ReactionKind, SitePrefs } from "@/lib/site-prefs";
 import type { DiscoverySite } from "@/lib/discovery";
 import { recordEvent, type EventKind } from "@/lib/discovery";
 import { getDeviceId } from "@/lib/device-id";
@@ -18,6 +18,7 @@ export function NavSheets({
   activeSheet,
   openFromSheet,
   closeSheet,
+  onReacted,
   site,
   prefs,
   isSaved,
@@ -25,6 +26,7 @@ export function NavSheets({
   activeSheet: SheetKey | null;
   openFromSheet: (sheet: SheetKey, kind: EventKind) => void;
   closeSheet: () => void;
+  onReacted: (kind: ReactionKind) => void;
   site: DiscoverySite | undefined;
   prefs: SitePrefs;
   isSaved: boolean;
@@ -63,6 +65,7 @@ export function NavSheets({
       />
       <ReactionSheet
         {...bind("reaction")}
+        onReacted={onReacted}
         site={site}
         {...(site && prefs.reactions[site.id] ? { current: prefs.reactions[site.id] } : {})}
       />
