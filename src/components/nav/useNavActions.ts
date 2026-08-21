@@ -7,7 +7,8 @@ import type { BottomNavProps, NavSlot, NavSlots } from "./types";
 
 // Which sheet a slot opens. Closed union so a typo fails to compile rather
 // than silently opening nothing.
-export type SheetKey = "menu" | "reaction" | "send-to" | "submit" | "settings" | "saved" | "auth";
+export type SheetKey =
+  "menu" | "reaction" | "send-to" | "submit" | "settings" | "saved" | "auth" | "inbox";
 
 // The single source of truth for what a tap on each slot actually does.
 // Called ONCE, by BottomNav, so ClassicNav and ModernNav are handed the same

@@ -35,6 +35,7 @@ export function MenuSheet({
   onOpenSubmit,
   onOpenSettings,
   onOpenAuth,
+  onOpenInbox,
   auth,
 }: {
   open: boolean;
@@ -45,6 +46,7 @@ export function MenuSheet({
   onOpenSubmit: () => void;
   onOpenSettings: () => void;
   onOpenAuth: () => void;
+  onOpenInbox: () => void;
   auth: AuthState;
 }) {
   const signedIn = Boolean(auth.session);
@@ -76,7 +78,9 @@ export function MenuSheet({
         icon={<Inbox size={ICON} />}
         label="Inbox"
         disabled={!signedIn}
-        {...(signedIn ? {} : { trailing: <SheetRowBadge>Needs an account</SheetRowBadge> })}
+        {...(signedIn
+          ? { onClick: onOpenInbox }
+          : { trailing: <SheetRowBadge>Needs an account</SheetRowBadge> })}
       />
       <SheetRow
         icon={<Compass size={ICON} />}
