@@ -5,7 +5,8 @@ import { APP_NAME } from "@/lib/brand";
 import { useNavStyle } from "@/lib/nav-style";
 import { APP_CONTENT_MAX_WIDTH, navContentReserve } from "@/components/nav/navMetrics";
 import { BottomNav } from "@/components/nav/BottomNav";
-import { fetchExplore, type ExploreSite } from "@/lib/explore";
+import { fetchExplorePage, type ExploreSite, type ExplorePage } from "@/lib/explore";
+import { SiteIcon } from "@/components/SiteIcon";
 import { screenshotFor } from "@/lib/screenshots";
 import { OPEN_SITE_KEY } from "@/routes/saved";
 
@@ -20,12 +21,18 @@ export const Route = createFileRoute("/explore")({
 });
 
 /**
- * The featured page: black, full screen, and led by a picture of the site
- * rather than by its address.
+ * The featured page: black, full screen, and built as a leaderboard.
  *
- * Every card opens with a real screenshot, captured at 1440x900 on a 2x
- * device scale, so what a person judges is what the page actually looks like.
- * Text sits underneath as the caption it always should have been.
+ * Two boards, never mixed. Paid placement sits on top under a heading that
+ * says it was paid for; the earned ranking sits below it. Sorting bought
+ * placement into an editorial "top" would make the number beside every other
+ * row mean nothing, so the page keeps them visibly apart.
+ *
+ * The top three of the earned board get a real screenshot, captured at
+ * 1440x900 on a 2x device scale -- a front page, so the thing a person judges
+ * is what the site actually looks like. Everything below is a compact row
+ * with an icon, which is what lets a leaderboard read as a leaderboard rather
+ * than as sixty posters in a stack.
  *
  * Screenshots are not free -- a cache miss drives a headless browser session
  * -- so a card asks for its own only as it comes into view, and falls back
@@ -35,13 +42,13 @@ export const Route = createFileRoute("/explore")({
 function ExploreScreen() {
   const navStyle = useNavStyle();
   const navigate = useNavigate();
-  const [sites, setSites] = useState<ExploreSite[] | null>(null);
+  const [page, setPage] = useState<ExplorePage | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let live = true;
-    fetchExplore()
-      .then((rows) => live && setSites(rows))
+    fetchExplorePage()
+      .then((next) => live && setPage(next))
       .catch(() => live && setFailed(true));
     return () => {
       live = false;
@@ -79,24 +86,13 @@ function ExploreScreen() {
           fontFamily: "Inter, system-ui, sans-serif",
         }}
       >
+        {/* Only the way out is pinned. The masthead scrolls with the boards:
+            on a 844px phone it was holding 250px of chrome above a list whose
+            whole point is seeing enough rows at once to compare them. */}
         <header style={{ ...COLUMN, flex: "0 0 auto", padding: "14px 20px 0" }}>
           <Link to="/" aria-label="Back to discovery" style={BACK}>
             <ArrowLeft size={22} aria-hidden="true" />
           </Link>
-          <h1
-            style={{
-              margin: "10px 0 0",
-              fontSize: 40,
-              lineHeight: 1.05,
-              fontWeight: 800,
-              letterSpacing: "-0.03em",
-            }}
-          >
-            Explore
-          </h1>
-          <p style={{ margin: "8px 0 0", fontSize: 15, color: MUTED }}>
-            The corners people keep coming back to.
-          </p>
         </header>
 
         <div
@@ -106,23 +102,64 @@ function ExploreScreen() {
             minHeight: 0,
             overflowY: "auto",
             WebkitOverflowScrolling: "touch",
-            padding: "22px 20px 32px",
+            padding: "6px 20px 32px",
           }}
         >
+          <h1
+            style={{
+              margin: "0 0 8px",
+              fontSize: 40,
+              lineHeight: 1.05,
+              fontWeight: 800,
+              letterSpacing: "-0.03em",
+            }}
+          >
+            Explore
+          </h1>
+          <p style={{ margin: "0 0 24px", fontSize: 15, color: MUTED }}>
+            The corners people keep coming back to.
+          </p>
+
           {failed ? (
             <Note text="Couldn't reach the catalogue." />
-          ) : !sites ? (
+          ) : !page ? (
             <Note text="Gathering the best of it…" />
-          ) : sites.length === 0 ? (
+          ) : page.top.length === 0 && page.boosted.length === 0 ? (
             <Note text="Nothing to feature yet." />
           ) : (
-            <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
-              {sites.map((site, i) => (
-                <li key={site.id} style={{ marginBottom: i === 0 ? 34 : 30 }}>
-                  <Card site={site} rank={i + 1} lead={i === 0} onOpen={open} />
-                </li>
-              ))}
-            </ol>
+            <>
+              {page.boosted.length > 0 ? (
+                <section style={{ marginBottom: 34 }}>
+                  {/* Said plainly. Someone paid to be here, and a reader is
+                      entitled to know that before they judge the placement. */}
+                  <Heading label="Boosted" note="Paid placement" />
+                  <ol style={{ listStyle: "none", margin: "14px 0 0", padding: 0 }}>
+                    {page.boosted.map((site) => (
+                      <li key={site.id}>
+                        <Row site={site} onOpen={open} />
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              ) : null}
+
+              <section>
+                <Heading label="Top sites" note="Ranked by how they land" />
+                <ol style={{ listStyle: "none", margin: "16px 0 0", padding: 0 }}>
+                  {page.top.map((site, i) =>
+                    i < 3 ? (
+                      <li key={site.id} style={{ marginBottom: 28 }}>
+                        <Card site={site} rank={i + 1} lead={i === 0} onOpen={open} />
+                      </li>
+                    ) : (
+                      <li key={site.id}>
+                        <Row site={site} rank={i + 1} onOpen={open} />
+                      </li>
+                    ),
+                  )}
+                </ol>
+              </section>
+            </>
           )}
         </div>
       </main>
@@ -181,6 +218,130 @@ function Card({
           </span>
         ) : null}
       </span>
+    </button>
+  );
+}
+
+/** A board's name, and what put things on it. */
+function Heading({ label, note }: { label: string; note: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+      <h2
+        style={{
+          margin: 0,
+          fontSize: 13,
+          fontWeight: 700,
+          letterSpacing: "0.09em",
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </h2>
+      <span style={{ fontSize: 12.5, color: "rgba(255,255,255,0.42)" }}>{note}</span>
+    </div>
+  );
+}
+
+/**
+ * A compact entry: rank, icon, who it is, and how it has done.
+ *
+ * This is the leaderboard's real unit. The screenshot cards above are the
+ * front page; below them density is the point, because a board only reads as
+ * a board when enough of it is on screen at once to compare.
+ *
+ * Boosted rows pass no rank -- they are not placed, they are bought, and
+ * numbering them would imply they beat something.
+ */
+function Row({
+  site,
+  rank,
+  onOpen,
+}: {
+  site: ExploreSite;
+  rank?: number | undefined;
+  onOpen: (s: ExploreSite) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(site)}
+      style={{
+        ...RESET,
+        width: "100%",
+        display: "flex",
+        gap: 13,
+        alignItems: "center",
+        padding: "13px 0",
+        borderTop: "1px solid rgba(255,255,255,0.09)",
+      }}
+    >
+      {rank ? (
+        <span
+          aria-hidden="true"
+          style={{
+            flex: "0 0 auto",
+            width: 24,
+            fontSize: 13.5,
+            fontWeight: 700,
+            fontVariantNumeric: "tabular-nums",
+            color: "rgba(255,255,255,0.34)",
+          }}
+        >
+          {rank}
+        </span>
+      ) : null}
+      <SiteIcon domain={site.domain} />
+      <span style={{ flex: "1 1 auto", minWidth: 0 }}>
+        <span
+          style={{
+            display: "block",
+            fontSize: 15.5,
+            fontWeight: 700,
+            letterSpacing: "-0.01em",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {site.domain}
+        </span>
+        {site.description ? (
+          <span
+            style={{
+              display: "block",
+              marginTop: 2,
+              fontSize: 13.5,
+              lineHeight: 1.35,
+              color: MUTED,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {clamp(site.description, 90)}
+          </span>
+        ) : null}
+      </span>
+      {site.likes > 0 ? (
+        // The unit is not decoration. On the board outbid.lol builds, the
+        // right-hand number is money and the dollar sign says so; a bare
+        // integer here reads just as easily as a rank or a price.
+        <span
+          style={{
+            flex: "0 0 auto",
+            fontSize: 13.5,
+            fontWeight: 700,
+            fontVariantNumeric: "tabular-nums",
+            color: "rgba(255,255,255,0.55)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {site.likes}
+          <span style={{ marginLeft: 4, fontWeight: 600, color: "rgba(255,255,255,0.34)" }}>
+            {site.likes === 1 ? "like" : "likes"}
+          </span>
+        </span>
+      ) : null}
     </button>
   );
 }
