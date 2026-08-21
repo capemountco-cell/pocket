@@ -156,18 +156,6 @@ export function SubmitSheet({
             Paste
           </button>
         </div>
-        <p
-          style={{
-            margin: "12px 2px 0",
-            fontSize: 13,
-            lineHeight: 1.45,
-            color: "var(--app-chrome-muted, #9c9c97)",
-          }}
-        >
-          We check the address before it goes in, and respect sites that ask not to be embedded —
-          those are served as a preview card instead. Every submission is reviewed before anyone
-          else is shown it.
-        </p>
       </div>
     </BaseSheet>
   );
