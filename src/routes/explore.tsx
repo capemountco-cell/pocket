@@ -5,8 +5,8 @@ import { APP_NAME } from "@/lib/brand";
 import { useNavStyle } from "@/lib/nav-style";
 import { APP_CONTENT_MAX_WIDTH, navContentReserve } from "@/components/nav/navMetrics";
 import { BottomNav } from "@/components/nav/BottomNav";
-import { fetchExplorePage, type ExploreSite, type ExplorePage } from "@/lib/explore";
-import { SiteIcon } from "@/components/SiteIcon";
+import { blendBoard, fetchExplorePage, type ExploreSite, type ExplorePage } from "@/lib/explore";
+import { BoardPaidTag, BoardRow, BoardStat } from "@/components/BoardRow";
 import { screenshotFor } from "@/lib/screenshots";
 import { OPEN_SITE_KEY } from "@/routes/saved";
 
@@ -71,6 +71,8 @@ function ExploreScreen() {
     void navigate({ to: "/" });
   };
 
+  const board = page ? blendBoard(page) : [];
+
   return (
     <>
       <main
@@ -105,61 +107,44 @@ function ExploreScreen() {
             padding: "6px 20px 32px",
           }}
         >
-          <h1
-            style={{
-              margin: "0 0 8px",
-              fontSize: 40,
-              lineHeight: 1.05,
-              fontWeight: 800,
-              letterSpacing: "-0.03em",
-            }}
-          >
-            Explore
-          </h1>
-          <p style={{ margin: "0 0 24px", fontSize: 15, color: MUTED }}>
-            The corners people keep coming back to.
-          </p>
-
           {failed ? (
             <Note text="Couldn't reach the catalogue." />
           ) : !page ? (
             <Note text="Gathering the best of it…" />
-          ) : page.top.length === 0 && page.boosted.length === 0 ? (
+          ) : board.length === 0 ? (
             <Note text="Nothing to feature yet." />
           ) : (
-            <>
-              {page.boosted.length > 0 ? (
-                <section style={{ marginBottom: 34 }}>
-                  {/* Said plainly. Someone paid to be here, and a reader is
-                      entitled to know that before they judge the placement. */}
-                  <Heading label="Boosted" note="Paid placement" />
-                  <ol style={{ listStyle: "none", margin: "14px 0 0", padding: 0 }}>
-                    {page.boosted.map((site) => (
-                      <li key={site.id}>
-                        <Row site={site} onOpen={open} />
-                      </li>
-                    ))}
-                  </ol>
-                </section>
-              ) : null}
-
-              <section>
-                <Heading label="Top sites" note="Ranked by how they land" />
-                <ol style={{ listStyle: "none", margin: "16px 0 0", padding: 0 }}>
-                  {page.top.map((site, i) =>
-                    i < 3 ? (
-                      <li key={site.id} style={{ marginBottom: 28 }}>
-                        <Card site={site} rank={i + 1} lead={i === 0} onOpen={open} />
-                      </li>
-                    ) : (
-                      <li key={site.id}>
-                        <Row site={site} rank={i + 1} onOpen={open} />
-                      </li>
-                    ),
-                  )}
-                </ol>
-              </section>
-            </>
+            <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
+              {board.map((entry, i) =>
+                entry.kind === "earned" && entry.rank <= 3 ? (
+                  <li key={entry.site.id} style={{ marginBottom: 28, marginTop: i === 0 ? 0 : 8 }}>
+                    <Card
+                      site={entry.site}
+                      rank={entry.rank}
+                      lead={entry.rank === 1}
+                      onOpen={open}
+                    />
+                  </li>
+                ) : (
+                  <li key={entry.site.id}>
+                    <BoardRow
+                      domain={entry.site.domain}
+                      title={entry.site.domain}
+                      description={
+                        entry.site.description ? clamp(entry.site.description, 90) : null
+                      }
+                      lead={entry.kind === "paid" ? <BoardPaidTag /> : entry.rank}
+                      trailing={
+                        entry.kind === "earned" && entry.site.likes > 0 ? (
+                          <BoardStat value={entry.site.likes} unit="likes" />
+                        ) : undefined
+                      }
+                      onOpen={() => open(entry.site)}
+                    />
+                  </li>
+                ),
+              )}
+            </ol>
           )}
         </div>
       </main>
@@ -218,130 +203,6 @@ function Card({
           </span>
         ) : null}
       </span>
-    </button>
-  );
-}
-
-/** A board's name, and what put things on it. */
-function Heading({ label, note }: { label: string; note: string }) {
-  return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-      <h2
-        style={{
-          margin: 0,
-          fontSize: 13,
-          fontWeight: 700,
-          letterSpacing: "0.09em",
-          textTransform: "uppercase",
-        }}
-      >
-        {label}
-      </h2>
-      <span style={{ fontSize: 12.5, color: "rgba(255,255,255,0.42)" }}>{note}</span>
-    </div>
-  );
-}
-
-/**
- * A compact entry: rank, icon, who it is, and how it has done.
- *
- * This is the leaderboard's real unit. The screenshot cards above are the
- * front page; below them density is the point, because a board only reads as
- * a board when enough of it is on screen at once to compare.
- *
- * Boosted rows pass no rank -- they are not placed, they are bought, and
- * numbering them would imply they beat something.
- */
-function Row({
-  site,
-  rank,
-  onOpen,
-}: {
-  site: ExploreSite;
-  rank?: number | undefined;
-  onOpen: (s: ExploreSite) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onOpen(site)}
-      style={{
-        ...RESET,
-        width: "100%",
-        display: "flex",
-        gap: 13,
-        alignItems: "center",
-        padding: "13px 0",
-        borderTop: "1px solid rgba(255,255,255,0.09)",
-      }}
-    >
-      {rank ? (
-        <span
-          aria-hidden="true"
-          style={{
-            flex: "0 0 auto",
-            width: 24,
-            fontSize: 13.5,
-            fontWeight: 700,
-            fontVariantNumeric: "tabular-nums",
-            color: "rgba(255,255,255,0.34)",
-          }}
-        >
-          {rank}
-        </span>
-      ) : null}
-      <SiteIcon domain={site.domain} />
-      <span style={{ flex: "1 1 auto", minWidth: 0 }}>
-        <span
-          style={{
-            display: "block",
-            fontSize: 15.5,
-            fontWeight: 700,
-            letterSpacing: "-0.01em",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {site.domain}
-        </span>
-        {site.description ? (
-          <span
-            style={{
-              display: "block",
-              marginTop: 2,
-              fontSize: 13.5,
-              lineHeight: 1.35,
-              color: MUTED,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {clamp(site.description, 90)}
-          </span>
-        ) : null}
-      </span>
-      {site.likes > 0 ? (
-        // The unit is not decoration. On the board outbid.lol builds, the
-        // right-hand number is money and the dollar sign says so; a bare
-        // integer here reads just as easily as a rank or a price.
-        <span
-          style={{
-            flex: "0 0 auto",
-            fontSize: 13.5,
-            fontWeight: 700,
-            fontVariantNumeric: "tabular-nums",
-            color: "rgba(255,255,255,0.55)",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {site.likes}
-          <span style={{ marginLeft: 4, fontWeight: 600, color: "rgba(255,255,255,0.34)" }}>
-            {site.likes === 1 ? "like" : "likes"}
-          </span>
-        </span>
-      ) : null}
     </button>
   );
 }
