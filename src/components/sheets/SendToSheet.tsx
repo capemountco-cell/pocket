@@ -1,36 +1,29 @@
 import { useState } from "react";
-import { Bookmark, BookmarkCheck, Copy, Share2, Users } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { Copy, Share2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { SheetRow, SheetRowBadge } from "@/components/ui/sheet-row";
-import { toggleSaved } from "@/lib/site-prefs";
 import { recordEvent } from "@/lib/discovery";
 import { getDeviceId } from "@/lib/device-id";
-import { APP_NAME } from "@/lib/brand";
 import type { DiscoverySite } from "@/lib/discovery";
 
 const ICON = 21;
 
-// Everything that sends the current site somewhere: to this device's
-// collection, to the clipboard, or to whatever the OS share sheet offers.
+// Everything that sends the current site somewhere other than this device:
+// to the clipboard, to whatever the OS share sheet offers, or -- once there
+// is somewhere to put it -- to another person using the app.
 export function SendToSheet({
   open,
   onOpenChange,
   site,
-  saved,
-  onOpenSaved,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   site: DiscoverySite | undefined;
-  saved: boolean;
-  onOpenSaved: () => void;
 }) {
   // The Web Share API only exists on some browsers; the row copies instead of
   // disappearing, so the same tap always sends the link somewhere.
   const [sharing, setSharing] = useState(false);
-  const navigate = useNavigate();
 
   const copyLink = async () => {
     if (!site) return;
@@ -66,44 +59,17 @@ export function SendToSheet({
 
   return (
     <BaseSheet open={open} onOpenChange={onOpenChange} title="Send this site to" eyebrow="Send to">
-      <SheetRow
-        icon={saved ? <BookmarkCheck size={ICON} /> : <Bookmark size={ICON} />}
-        label={saved ? "Remove from saved" : "Save this site"}
-        onClick={() => {
-          if (!site) return;
-          void toggleSaved(site).then((nowSaved) =>
-            toast(nowSaved ? "Saved" : "Removed from saved"),
-          );
-        }}
-      />
       <SheetRow icon={<Copy size={ICON} />} label="Copy link" onClick={copyLink} />
       <SheetRow icon={<Share2 size={ICON} />} label="Share" onClick={share} />
-      <SheetRow
-        icon={<Bookmark size={ICON} />}
-        label="Your saved sites"
-        onClick={() => {
-          onOpenSaved();
-          onOpenChange(false);
-          void navigate({ to: "/saved" });
-        }}
-      />
+      {/* Not built, and honestly labelled as such. Sending a site to another
+          person needs somewhere to put it -- a shares table, and a way to
+          find the person -- and neither exists in this database yet. */}
       <SheetRow
         icon={<Users size={ICON} />}
         label="Send to a friend"
         disabled
-        trailing={<SheetRowBadge>Needs an account</SheetRowBadge>}
+        trailing={<SheetRowBadge>Not yet</SheetRowBadge>}
       />
-      <p
-        style={{
-          margin: 0,
-          padding: "14px 20px 18px",
-          fontSize: 13,
-          lineHeight: 1.45,
-          color: "var(--app-chrome-muted, #9c9c97)",
-        }}
-      >
-        Saved sites live on this device until {APP_NAME} accounts arrive.
-      </p>
     </BaseSheet>
   );
 }

@@ -2,6 +2,7 @@ import { MenuSheet } from "@/components/sheets/MenuSheet";
 import { ReactionSheet } from "@/components/sheets/ReactionSheet";
 import { SendToSheet } from "@/components/sheets/SendToSheet";
 import { SubmitSheet } from "@/components/sheets/SubmitSheet";
+import { InboxSheet } from "@/components/sheets/InboxSheet";
 import { SettingsSheet } from "@/components/sheets/SettingsSheet";
 import { AuthSheet } from "@/components/sheets/AuthSheet";
 import { useAuth } from "@/lib/auth";
@@ -61,6 +62,7 @@ export function NavSheets({
         onOpenSubmit={() => openFromSheet("submit", "submit_open")}
         onOpenSettings={() => openFromSheet("settings", "preferences_open")}
         onOpenAuth={() => openFromSheet("auth", "auth_open")}
+        onOpenInbox={() => openFromSheet("inbox", "menu_open")}
         auth={auth}
       />
       <ReactionSheet
@@ -69,12 +71,8 @@ export function NavSheets({
         site={site}
         {...(site && prefs.reactions[site.id] ? { current: prefs.reactions[site.id] } : {})}
       />
-      <SendToSheet
-        {...bind("send-to")}
-        site={site}
-        saved={isSaved}
-        onOpenSaved={() => recordSheetEvent("bookmarks_open")}
-      />
+      <SendToSheet {...bind("send-to")} site={site} />
+      <InboxSheet {...bind("inbox")} userId={auth.user?.id} />
       <SubmitSheet {...bind("submit")} />
       <SettingsSheet {...bind("settings")} />
       <AuthSheet {...bind("auth")} />
