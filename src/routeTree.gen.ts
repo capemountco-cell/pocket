@@ -10,7 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AaravosRouteImport } from './routes/aaravos'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as SavedRouteImport } from './routes/saved'
 
@@ -19,9 +19,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const AaravosRoute = AaravosRouteImport.update({
+  id: '/aaravos',
+  path: '/aaravos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExploreRoute = ExploreRouteImport.update({
@@ -37,34 +37,34 @@ const SavedRoute = SavedRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/aaravos': typeof AaravosRoute
   '/explore': typeof ExploreRoute
   '/saved': typeof SavedRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/aaravos': typeof AaravosRoute
   '/explore': typeof ExploreRoute
   '/saved': typeof SavedRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/aaravos': typeof AaravosRoute
   '/explore': typeof ExploreRoute
   '/saved': typeof SavedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/explore' | '/saved'
+  fullPaths: '/' | '/aaravos' | '/explore' | '/saved'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/explore' | '/saved'
-  id: '__root__' | '/' | '/admin' | '/explore' | '/saved'
+  to: '/' | '/aaravos' | '/explore' | '/saved'
+  id: '__root__' | '/' | '/aaravos' | '/explore' | '/saved'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AaravosRoute: typeof AaravosRoute
   ExploreRoute: typeof ExploreRoute
   SavedRoute: typeof SavedRoute
 }
@@ -78,11 +78,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
+    '/aaravos': {
+      id: '/aaravos'
+      path: '/aaravos'
+      fullPath: '/aaravos'
+      preLoaderRoute: typeof AaravosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/explore': {
@@ -104,7 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AaravosRoute: AaravosRoute,
   ExploreRoute: ExploreRoute,
   SavedRoute: SavedRoute,
 }
