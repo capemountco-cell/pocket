@@ -81,8 +81,10 @@ export function MenuSheet({
       <SheetRow
         icon={<Compass size={ICON} />}
         label="Explore"
-        disabled
-        trailing={<SheetRowBadge>Coming soon</SheetRowBadge>}
+        onClick={() => {
+          onOpenChange(false);
+          void navigate({ to: "/explore" });
+        }}
       />
       {/* The collection is a place, not a panel: it has a real URL so it can
           be linked and reached by back/forward. Navigated rather than wrapped
