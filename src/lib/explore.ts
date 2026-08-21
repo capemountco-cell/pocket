@@ -76,18 +76,51 @@ export function scoreSite(row: Row, now: number): number {
   return approval * (0.35 + weight) * fresh - spam * 0.5;
 }
 
+export type ExplorePage = {
+  /** Paid placement. Shown above the list and labelled as bought, never mixed. */
+  boosted: ExploreSite[];
+  /** Earned placement, ranked by score. */
+  top: ExploreSite[];
+};
+
 /**
- * The ranked page.
+ * Everything the page shows, in two separate lists.
+ *
+ * Paid and earned are kept apart on purpose. A boost buys distribution; it
+ * does not buy a better record, and quietly sorting bought placement into an
+ * editorial "top" would make the number beside every other row meaningless.
+ * Boosted sites sit above the list under their own heading, and are removed
+ * from the ranking below so nothing appears twice.
+ */
+export async function fetchExplorePage(): Promise<ExplorePage> {
+  const [boosted, top] = await Promise.all([fetchBoosted(), fetchExplore()]);
+  const paidIds = new Set(boosted.map((s) => s.id));
+  return { boosted, top: top.filter((s) => !paidIds.has(s.id)) };
+}
+
+/** Sites currently carrying a live boost. */
+async function fetchBoosted(): Promise<ExploreSite[]> {
+  const { data, error } = await supabase
+    .from("sites")
+    .select(COLUMNS)
+    .eq("status", "live")
+    .is("boosted", true)
+    .not("is_adult", "is", true)
+    .order("created_at", { ascending: false })
+    .limit(10);
+  if (error) return [];
+  const now = Date.now();
+  return (data ?? []).map((row) => decorate(row as unknown as SiteRow, row, now));
+}
+
+/**
+ * The earned ranking.
  *
  * Two queries rather than one: ordering the whole catalogue by a score the
  * database does not store is not possible from here, so the best-reviewed and
  * the newest are fetched separately and merged before scoring. Without the
  * second pass a good site submitted yesterday could never appear, because it
  * has no reactions yet to rank on.
- *
- * Boosted sites are deliberately not lifted. A boost buys distribution in the
- * discovery queue; presenting paid placement as an editorial "top" would make
- * the page dishonest.
  */
 export async function fetchExplore(): Promise<ExploreSite[]> {
   const base = () =>
@@ -110,16 +143,20 @@ export async function fetchExplore(): Promise<ExploreSite[]> {
   for (const row of [...(best.data ?? []), ...(newest.data ?? [])]) {
     const r = row as unknown as SiteRow;
     if (byId.has(r.id)) continue;
-    const site = toDiscoverySite(r);
-    byId.set(r.id, {
-      ...site,
-      description: row.description ?? null,
-      image: row.og_image ?? null,
-      tags: Array.isArray(row.tags) ? row.tags.filter(Boolean).slice(0, 3) : [],
-      likes: Math.max(0, row.like_count ?? 0),
-      score: scoreSite(row, now),
-    });
+    byId.set(r.id, decorate(r, row, now));
   }
 
   return [...byId.values()].sort((a, b) => b.score - a.score).slice(0, EXPLORE_SIZE);
+}
+
+/** A catalogue row as the page needs it. */
+function decorate(r: SiteRow, row: Row, now: number): ExploreSite {
+  return {
+    ...toDiscoverySite(r),
+    description: row.description ?? null,
+    image: row.og_image ?? null,
+    tags: Array.isArray(row.tags) ? row.tags.filter(Boolean).slice(0, 3) : [],
+    likes: Math.max(0, row.like_count ?? 0),
+    score: scoreSite(row, now),
+  };
 }
