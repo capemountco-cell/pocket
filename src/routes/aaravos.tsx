@@ -10,13 +10,14 @@ import {
   adminSignOut,
   adminTokenValid,
 } from "@/lib/admin";
+import { BoostsPanel } from "@/components/admin/BoostsPanel";
 import { MessagesPanel } from "@/components/admin/MessagesPanel";
 import { OverviewPanel } from "@/components/admin/OverviewPanel";
 import { QueuePanel } from "@/components/admin/QueuePanel";
 import { SitesPanel } from "@/components/admin/SitesPanel";
 import { Btn, Field, INK, MUTED, Note } from "@/components/admin/ui";
 
-export const Route = createFileRoute("/admin")({
+export const Route = createFileRoute("/aaravos")({
   head: () => ({
     meta: [
       { title: `Console — ${APP_NAME}` },
@@ -28,23 +29,28 @@ export const Route = createFileRoute("/admin")({
   component: AdminScreen,
 });
 
-type Tab = "overview" | "queue" | "sites" | "messages";
+type Tab = "overview" | "queue" | "sites" | "boosts" | "messages";
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: "overview", label: "Overview" },
   { id: "queue", label: "Queue" },
   { id: "sites", label: "Sites" },
+  { id: "boosts", label: "Boosts" },
   { id: "messages", label: "Messages" },
 ];
 
 /**
  * The operator console.
  *
+ * It answers on an address nobody guesses and nothing links to, and it is the
+ * only address it answers on -- there is deliberately no `/admin`, because a
+ * predictable path is a standing invitation to run PINs against it.
+ *
  * Every button here is a SECURITY DEFINER routine the database gates on a
  * token, so this screen holds no authority of its own: it can only ask, and
- * the database decides. That is what makes it safe to ship in a browser
- * bundle at all -- the PIN is checked in Postgres, not here, and a token that
- * has expired or been revoked simply stops working mid-session.
+ * the database decides. Both halves of the credential are checked in Postgres,
+ * not here, and a token that has expired or been revoked simply stops working
+ * mid-session.
  *
  * The token lives in sessionStorage and dies with the tab.
  */
@@ -184,6 +190,8 @@ function AdminScreen() {
           <QueuePanel token={session.token} />
         ) : tab === "sites" ? (
           <SitesPanel token={session.token} />
+        ) : tab === "boosts" ? (
+          <BoostsPanel token={session.token} />
         ) : (
           <MessagesPanel />
         )}
@@ -200,19 +208,23 @@ const COLUMN: React.CSSProperties = {
 };
 
 function Gate({ onSignedIn }: { onSignedIn: (session: AdminSession) => void }) {
+  const [password, setPassword] = useState("");
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
+  const ready = password.trim().length > 0 && pin.trim().length > 0;
+
   const submit = async () => {
-    if (!pin.trim()) return;
+    if (!ready) return;
     setBusy(true);
     setFailure(null);
     try {
-      const session = await adminSignIn(pin.trim());
-      // A wrong PIN comes back as no rows, not as an error. Saying so plainly
-      // beats a generic failure the operator has to guess at.
-      if (!session) setFailure("That PIN doesn't match.");
+      const session = await adminSignIn(password, pin.trim());
+      // Wrong credentials come back as no rows, not as an error. Which half
+      // was wrong is deliberately not said: that is a hint worth giving an
+      // operator and not worth giving anyone else.
+      if (!session) setFailure("That password and PIN don't match.");
       else onSignedIn(session);
     } catch (cause) {
       setFailure(describeFailure(cause));
@@ -227,24 +239,24 @@ function Gate({ onSignedIn }: { onSignedIn: (session: AdminSession) => void }) {
         This screen manages the catalogue and writes to readers&rsquo; inboxes.
       </p>
       <div style={{ display: "grid", gap: 14 }}>
+        <Field label="Password" value={password} onChange={setPassword} type="password" autoFocus />
         <Field
           label="PIN"
           value={pin}
           onChange={setPin}
           type="password"
-          autoFocus
           onEnter={() => void submit()}
         />
         <div>
-          <Btn tone="primary" onClick={() => void submit()} disabled={busy || !pin.trim()}>
+          <Btn tone="primary" onClick={() => void submit()} disabled={busy || !ready}>
             {busy ? "Checking…" : "Unlock"}
           </Btn>
         </div>
       </div>
       {failure ? <Note text={failure} tone="danger" /> : null}
       <p style={{ marginTop: 28, fontSize: 12.5, lineHeight: 1.5, color: "rgba(255,255,255,0.3)" }}>
-        Nothing here is decided in the browser. The PIN is checked in the database, and every action
-        below it is a routine that verifies the token it was given.
+        Nothing here is decided in the browser. Both halves are checked in the database, and every
+        action below is a routine that verifies the token it was given.
       </p>
     </div>
   );

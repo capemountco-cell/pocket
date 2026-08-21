@@ -113,9 +113,22 @@ export async function adminTokenValid(token: string): Promise<boolean> {
   return data === true;
 }
 
-/** Wrong PIN returns null, not an error: it is an answer, not a failure. */
-export async function adminSignIn(pin: string): Promise<AdminSession | null> {
-  const { data, error } = await supabase.rpc("verify_admin_pin", { p_pin: pin });
+/**
+ * Both halves, or nothing.
+ *
+ * `verify_admin` wants the password AND the PIN; `verify_admin_pin` next to it
+ * in the schema takes the PIN alone and is not used here. One factor in front
+ * of the whole catalogue and every account's inbox is not enough, and the
+ * database has always been willing to check two.
+ *
+ * Wrong credentials return null, not an error: that is an answer, not a
+ * failure, and the routine reports it as no rows rather than as a fault.
+ */
+export async function adminSignIn(password: string, pin: string): Promise<AdminSession | null> {
+  const { data, error } = await supabase.rpc("verify_admin", {
+    p_password: password,
+    p_pin: pin,
+  });
   if (error) throw new Error(error.message);
   const row = data?.[0];
   if (!row) return null;
@@ -229,6 +242,14 @@ export const adminDeleteSite = (t: string, id: string) =>
 
 export const adminSetSubmissionMode = (t: string, mode: string) =>
   call<boolean>(supabase.rpc("admin_set_submission_mode", { p_token: t, p_mode: mode }));
+
+// -- boosts ----------------------------------------------------------------
+
+export const adminBoostDashboard = (t: string) =>
+  call<Json>(supabase.rpc("admin_boost_dashboard", { p_token: t }));
+
+export const adminBoostSettings = (t: string) =>
+  call<Json>(supabase.rpc("admin_get_boost_settings", { p_token: t }));
 
 // -- messages --------------------------------------------------------------
 
