@@ -114,6 +114,75 @@ export async function adminTokenValid(token: string): Promise<boolean> {
 }
 
 /**
+ * Whether the database is holding console credentials at all.
+ *
+ * Both checks are open to anyone -- deliberately, because a setup screen has
+ * to be able to ask "is this console claimed yet?" before it offers to claim
+ * it. Neither answer reveals anything about the credential itself.
+ */
+export async function adminCredentialsExist(): Promise<{ password: boolean; pin: boolean }> {
+  const [password, pin] = await Promise.all([
+    call<boolean>(supabase.rpc("admin_password_exists")),
+    call<boolean>(supabase.rpc("admin_pin_exists")),
+  ]);
+  return { password: password === true, pin: pin === true };
+}
+
+export type SetupOutcome = { ok: true } | { ok: false; reason: string };
+
+/**
+ * Claims an unclaimed console.
+ *
+ * This can only ever create; it cannot replace. `set_initial_admin_password`
+ * and `set_initial_admin_pin` are open to anyone holding the publishable key
+ * -- which ships in this bundle and in every other copy of the app -- so they
+ * refuse once a credential is stored. If they did not, the console would
+ * belong to whoever asked for it last.
+ *
+ * So this refuses first, in the client, for the same reason and with a better
+ * explanation: a half-claimed console (a PIN you chose over a password you
+ * never knew) is worse than a locked one, and the database would happily
+ * leave you in it.
+ */
+export async function adminCreateCredentials(password: string, pin: string): Promise<SetupOutcome> {
+  const existing = await adminCredentialsExist();
+
+  if (existing.password && existing.pin) {
+    return {
+      ok: false,
+      reason:
+        "This console already has a password and a PIN, and the database will not replace them from a browser. Clear app_settings.admin_password_hash and app_settings.pin_hash, then this screen can set new ones.",
+    };
+  }
+  if (existing.password !== existing.pin) {
+    const held = existing.password ? "a password" : "a PIN";
+    const missing = existing.password ? "PIN" : "password";
+    return {
+      ok: false,
+      reason: `This console already holds ${held} but no ${missing}. Setting only the missing half would leave you with credentials you only know one of -- clear both in app_settings and start over.`,
+    };
+  }
+
+  const passwordSet = await call<boolean>(
+    supabase.rpc("set_initial_admin_password", { p_password: password }),
+  );
+  if (passwordSet !== true) {
+    return { ok: false, reason: "The database would not accept that password." };
+  }
+
+  const pinSet = await call<boolean>(supabase.rpc("set_initial_admin_pin", { p_pin: pin }));
+  if (pinSet !== true) {
+    return {
+      ok: false,
+      reason:
+        "The password was set but the database would not accept that PIN. Try unlocking with the password and a different PIN, or clear both in app_settings and start over.",
+    };
+  }
+
+  return { ok: true };
+}
+
+/**
  * Both halves, or nothing.
  *
  * `verify_admin` wants the password AND the PIN; `verify_admin_pin` next to it

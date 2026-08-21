@@ -4,11 +4,13 @@ import { ArrowLeft } from "lucide-react";
 import { APP_NAME } from "@/lib/brand";
 import type { AdminSession } from "@/lib/admin";
 import {
-  describeFailure,
+  adminCreateCredentials,
+  adminCredentialsExist,
   adminSession,
   adminSignIn,
   adminSignOut,
   adminTokenValid,
+  describeFailure,
 } from "@/lib/admin";
 import { BoostsPanel } from "@/components/admin/BoostsPanel";
 import { MessagesPanel } from "@/components/admin/MessagesPanel";
@@ -207,7 +209,43 @@ const COLUMN: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
+/**
+ * The way in.
+ *
+ * Two screens, and which one you get is the database's answer, not a setting:
+ * an unclaimed console offers to be claimed, a claimed one asks to be
+ * unlocked. Setup is still reachable from the gate, because someone locked
+ * out of their own console deserves to be told why by the console rather than
+ * left guessing at a form that will not take their PIN.
+ */
 function Gate({ onSignedIn }: { onSignedIn: (session: AdminSession) => void }) {
+  const [claimed, setClaimed] = useState<boolean | null>(null);
+  const [setup, setSetup] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    adminCredentialsExist()
+      .then((existing) => live && setClaimed(existing.password && existing.pin))
+      .catch(() => live && setClaimed(true));
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  if (claimed === null) return <Note text="Checking…" />;
+  if (claimed && !setup) {
+    return <SignIn onSignedIn={onSignedIn} onLockedOut={() => setSetup(true)} />;
+  }
+  return <Setup onSignedIn={onSignedIn} {...(claimed ? { onBack: () => setSetup(false) } : {})} />;
+}
+
+function SignIn({
+  onSignedIn,
+  onLockedOut,
+}: {
+  onSignedIn: (session: AdminSession) => void;
+  onLockedOut: () => void;
+}) {
   const [password, setPassword] = useState("");
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
@@ -254,10 +292,102 @@ function Gate({ onSignedIn }: { onSignedIn: (session: AdminSession) => void }) {
         </div>
       </div>
       {failure ? <Note text={failure} tone="danger" /> : null}
-      <p style={{ marginTop: 28, fontSize: 12.5, lineHeight: 1.5, color: "rgba(255,255,255,0.3)" }}>
+      <button type="button" onClick={onLockedOut} style={QUIET_LINK}>
+        Can&rsquo;t get in?
+      </button>
+      <p style={{ marginTop: 24, fontSize: 12.5, lineHeight: 1.5, color: "rgba(255,255,255,0.3)" }}>
         Nothing here is decided in the browser. Both halves are checked in the database, and every
         action below is a routine that verifies the token it was given.
       </p>
     </div>
   );
 }
+
+/**
+ * Claiming a console that has never been claimed.
+ *
+ * On success it signs straight in with what was just chosen, so nobody has to
+ * type it twice into a screen that has already accepted it.
+ */
+function Setup({
+  onSignedIn,
+  onBack,
+}: {
+  onSignedIn: (session: AdminSession) => void;
+  onBack?: () => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [pin, setPin] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+
+  const ready = password.trim().length > 0 && pin.trim().length > 0;
+
+  const submit = async () => {
+    if (!ready) return;
+    setBusy(true);
+    setFailure(null);
+    try {
+      const outcome = await adminCreateCredentials(password, pin.trim());
+      if (!outcome.ok) {
+        setFailure(outcome.reason);
+        return;
+      }
+      const session = await adminSignIn(password, pin.trim());
+      if (session) onSignedIn(session);
+      else setFailure("The credentials were created but would not sign in. Try unlocking.");
+    } catch (cause) {
+      setFailure(describeFailure(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: 340, paddingTop: 8 }}>
+      <h2 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 800, letterSpacing: "-0.02em" }}>
+        Set up the console
+      </h2>
+      <p style={{ margin: "0 0 16px", fontSize: 14.5, lineHeight: 1.5, color: MUTED }}>
+        Choose a password and a PIN. Both are needed every time, and neither can be recovered from
+        here afterwards.
+      </p>
+      <div style={{ display: "grid", gap: 14 }}>
+        <Field label="Password" value={password} onChange={setPassword} type="password" autoFocus />
+        <Field
+          label="PIN"
+          value={pin}
+          onChange={setPin}
+          type="password"
+          onEnter={() => void submit()}
+        />
+        <div style={{ display: "flex", gap: 8 }}>
+          <Btn tone="primary" onClick={() => void submit()} disabled={busy || !ready}>
+            {busy ? "Creating…" : "Create and sign in"}
+          </Btn>
+          {onBack ? <Btn onClick={onBack}>Back</Btn> : null}
+        </div>
+      </div>
+      {failure ? <Note text={failure} tone="danger" /> : null}
+      <p style={{ marginTop: 24, fontSize: 12.5, lineHeight: 1.5, color: "rgba(255,255,255,0.3)" }}>
+        This can only ever create, never replace. The routines behind it are open to anyone holding
+        the app&rsquo;s public key, so the database refuses them the moment a credential exists --
+        otherwise the console would belong to whoever asked last.
+      </p>
+    </div>
+  );
+}
+
+const QUIET_LINK: React.CSSProperties = {
+  appearance: "none",
+  background: "transparent",
+  border: 0,
+  margin: "18px 0 0",
+  padding: 0,
+  color: "rgba(255,255,255,0.45)",
+  font: "inherit",
+  fontSize: 13,
+  textDecoration: "underline",
+  textUnderlineOffset: 3,
+  cursor: "pointer",
+};
