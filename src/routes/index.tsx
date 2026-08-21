@@ -123,6 +123,16 @@ function DeckMessage({
   onRestart: () => void;
   onRetry: () => void;
 }) {
+  // Only the three states that have something to say get a screen.
+  //
+  // Loading is deliberately silent: a site takes a moment to arrive and the
+  // screen it arrives on is black, so announcing the wait only replaced that
+  // black with a pale panel and a sentence nobody needed. The tap already
+  // said what was happening.
+  //
+  // Anything else falls through to the same silence rather than to a default
+  // message -- a brief "ready" with no site yet is a frame of nothing, not a
+  // reason to tell someone they have seen the entire catalogue.
   const copy =
     status === "unconfigured"
       ? {
@@ -142,11 +152,13 @@ function DeckMessage({
               body: `That's the whole catalogue for now. Start it over, or add a site ${APP_NAME} doesn't have yet.`,
               action: { label: "Start over", run: onRestart },
             }
-          : { title: "Finding you a site…", body: "", action: null };
+          : null;
+
+  if (!copy) return null;
 
   return (
     <div
-      role={status === "loading" ? "status" : "alert"}
+      role="alert"
       aria-live="polite"
       style={{
         height: "100%",
@@ -155,7 +167,8 @@ function DeckMessage({
         justifyContent: "center",
         padding: 24,
         boxSizing: "border-box",
-        background: "var(--app-bg, #FAFAF7)",
+        background: "#000000",
+        color: "#ffffff",
         fontFamily: "Inter, system-ui, sans-serif",
         textAlign: "center",
       }}
@@ -167,7 +180,7 @@ function DeckMessage({
             fontSize: 20,
             fontWeight: 600,
             letterSpacing: "-0.01em",
-            color: "var(--app-fg, #111111)",
+            color: "#ffffff",
           }}
         >
           {copy.title}
@@ -178,7 +191,7 @@ function DeckMessage({
               margin: "10px 0 0",
               fontSize: 15,
               lineHeight: 1.5,
-              color: "var(--app-fg-muted, #6B6B66)",
+              color: "rgba(255,255,255,0.62)",
             }}
           >
             {copy.body}
