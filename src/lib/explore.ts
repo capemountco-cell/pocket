@@ -98,6 +98,47 @@ export async function fetchExplorePage(): Promise<ExplorePage> {
   return { boosted, top: top.filter((s) => !paidIds.has(s.id)) };
 }
 
+/** A place on the blended board: an earned entry, or a bought one. */
+export type BoardEntry =
+  { kind: "earned"; rank: number; site: ExploreSite } | { kind: "paid"; site: ExploreSite };
+
+/**
+ * One list, with paid placement slotted into it.
+ *
+ * A separate block of paid rows on top pushes the first earned result below
+ * the fold, which is the opposite of what a discovery page is for. Blending
+ * puts an earned site at number one and lets bought ones sit in the run of
+ * the list, marked, the way a sponsored result sits in a page of search
+ * results.
+ *
+ * Slots are fixed rather than scored, because a bought placement has no score
+ * to sort by. The first is deep enough that the top of the list is always
+ * earned, and the spacing after it keeps any single scroll from being mostly
+ * advertising.
+ */
+const FIRST_PAID_SLOT = 3;
+const PAID_EVERY = 9;
+
+export function blendBoard({ boosted, top }: ExplorePage): BoardEntry[] {
+  const out: BoardEntry[] = [];
+  const queue = [...boosted];
+
+  top.forEach((site, i) => {
+    out.push({ kind: "earned", rank: i + 1, site });
+    const placed = i + 1;
+    const due = placed >= FIRST_PAID_SLOT && (placed - FIRST_PAID_SLOT) % PAID_EVERY === 0;
+    if (due && queue.length > 0) {
+      const paid = queue.shift();
+      if (paid) out.push({ kind: "paid", site: paid });
+    }
+  });
+
+  // Anything that never found a slot -- a short board, or more boosts than
+  // gaps -- goes at the end rather than being dropped.
+  for (const site of queue) out.push({ kind: "paid", site });
+  return out;
+}
+
 /** Sites currently carrying a live boost. */
 async function fetchBoosted(): Promise<ExploreSite[]> {
   const { data, error } = await supabase

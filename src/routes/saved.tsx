@@ -17,6 +17,7 @@ import {
 } from "@/lib/discovery";
 import { APP_CONTENT_MAX_WIDTH, navContentReserve } from "@/components/nav/navMetrics";
 import { BottomNav } from "@/components/nav/BottomNav";
+import { BoardRow, BOARD_MUTED } from "@/components/BoardRow";
 
 // How many rows to pull per request. Large enough that most collections load
 // in one go, small enough that the 1,441-row case doesn't block first paint.
@@ -164,8 +165,10 @@ function SavedPage() {
           boxSizing: "border-box",
           display: "flex",
           flexDirection: "column",
-          background: "var(--app-bg, #FAFAF7)",
-          color: "var(--app-fg, #111111)",
+          // Black, like Explore. The collection is the same kind of surface
+          // -- a board of sites -- so it should not arrive as a different app.
+          background: "#000000",
+          color: "#ffffff",
           fontFamily: "Inter, system-ui, sans-serif",
         }}
       >
@@ -182,7 +185,7 @@ function SavedPage() {
                 height: 44,
                 marginLeft: -10,
                 borderRadius: 999,
-                color: "var(--app-fg, #111111)",
+                color: "#ffffff",
               }}
             >
               <ArrowLeft size={22} aria-hidden="true" />
@@ -195,7 +198,7 @@ function SavedPage() {
                 marginLeft: "auto",
                 fontSize: 14,
                 fontVariantNumeric: "tabular-nums",
-                color: "var(--app-fg-muted, #6B6B66)",
+                color: BOARD_MUTED,
               }}
             >
               {loading ? "" : `${rows} ${rows === 1 ? "item" : "items"}`}
@@ -253,7 +256,7 @@ function SavedPage() {
                   <button
                     type="button"
                     onClick={() => void removeAll()}
-                    style={{ ...SECONDARY, color: "var(--app-destructive, #C0392B)" }}
+                    style={{ ...SECONDARY, color: "var(--app-destructive, #FF453A)" }}
                   >
                     Empty collection
                   </button>
@@ -298,9 +301,9 @@ function TabButton({
         minHeight: 44,
         padding: "0 16px",
         borderRadius: 999,
-        border: `1px solid ${active ? "var(--app-fg, #111111)" : "var(--app-border, #E6E6E1)"}`,
-        background: active ? "var(--app-fg, #111111)" : "transparent",
-        color: active ? "var(--app-bg, #FAFAF7)" : "var(--app-fg, #111111)",
+        border: `1px solid ${active ? "#ffffff" : "rgba(255,255,255,0.18)"}`,
+        background: active ? "#ffffff" : "transparent",
+        color: active ? "#000000" : "#ffffff",
         fontFamily: "Inter, system-ui, sans-serif",
         fontSize: 15,
         fontWeight: 600,
@@ -321,41 +324,38 @@ function SavedRow({
   onShow: (s: DiscoverySite) => void;
   onRemove: (s: DiscoverySite) => Promise<void>;
 }) {
+  // Title on the bold line here rather than the domain: on Explore you are
+  // scanning for something new and the address is the identity, but a
+  // collection is things you already chose, and you remember what you called
+  // them. The domain moves to the second line.
   return (
-    <div style={ROW}>
-      <button type="button" onClick={() => onShow(site)} style={ROW_MAIN}>
-        <span style={{ display: "block", fontSize: 16, fontWeight: 600, ...CLAMP }}>
-          {site.title}
-        </span>
-        <span
-          style={{
-            display: "block",
-            fontSize: 13,
-            color: "var(--app-fg-muted, #6B6B66)",
-            ...CLAMP,
-          }}
-        >
-          {site.domain}
-        </span>
-      </button>
-      <a
-        href={site.url}
-        target="_blank"
-        rel="noreferrer noopener"
-        aria-label={`Open ${site.title} in a new tab`}
-        style={ROW_ACTION}
-      >
-        <ExternalLink size={18} aria-hidden="true" />
-      </a>
-      <button
-        type="button"
-        onClick={() => void onRemove(site)}
-        aria-label={`Remove ${site.title} from saved`}
-        style={ROW_ACTION}
-      >
-        <Trash2 size={18} aria-hidden="true" />
-      </button>
-    </div>
+    <BoardRow
+      domain={site.domain}
+      title={site.title}
+      description={site.domain}
+      onOpen={() => onShow(site)}
+      actions={
+        <>
+          <a
+            href={site.url}
+            target="_blank"
+            rel="noreferrer noopener"
+            aria-label={`Open ${site.title} in a new tab`}
+            style={ROW_ACTION}
+          >
+            <ExternalLink size={18} aria-hidden="true" />
+          </a>
+          <button
+            type="button"
+            onClick={() => void onRemove(site)}
+            aria-label={`Remove ${site.title} from saved`}
+            style={ROW_ACTION}
+          >
+            <Trash2 size={18} aria-hidden="true" />
+          </button>
+        </>
+      }
+    />
   );
 }
 
@@ -375,7 +375,7 @@ function SubmissionRow({ submission }: { submission: MySubmission }) {
           style={{
             display: "block",
             fontSize: 13,
-            color: "var(--app-fg-muted, #6B6B66)",
+            color: BOARD_MUTED,
             ...CLAMP,
           }}
         >
@@ -391,11 +391,7 @@ function SubmissionRow({ submission }: { submission: MySubmission }) {
 function Message({ text, action }: { text: string; action?: { label: string; run: () => void } }) {
   return (
     <div style={{ padding: "28px 4px", textAlign: "center" }}>
-      <p
-        style={{ margin: 0, fontSize: 15, lineHeight: 1.5, color: "var(--app-fg-muted, #6B6B66)" }}
-      >
-        {text}
-      </p>
+      <p style={{ margin: 0, fontSize: 15, lineHeight: 1.5, color: BOARD_MUTED }}>{text}</p>
       {action ? (
         <button type="button" onClick={action.run} style={{ ...SECONDARY, marginTop: 14 }}>
           {action.label}
@@ -429,7 +425,6 @@ const ROW: React.CSSProperties = {
   display: "flex",
   alignItems: "stretch",
   gap: 4,
-  borderBottom: "1px solid var(--app-border, #E6E6E1)",
 };
 
 const ROW_MAIN: React.CSSProperties = {
@@ -439,7 +434,7 @@ const ROW_MAIN: React.CSSProperties = {
   padding: "10px 4px",
   background: "transparent",
   border: 0,
-  color: "var(--app-fg, #111111)",
+  color: "#ffffff",
   fontFamily: "Inter, system-ui, sans-serif",
   textAlign: "left",
   cursor: "pointer",
@@ -454,7 +449,7 @@ const ROW_ACTION: React.CSSProperties = {
   minHeight: 60,
   background: "transparent",
   border: 0,
-  color: "var(--app-fg-muted, #6B6B66)",
+  color: BOARD_MUTED,
   cursor: "pointer",
 };
 
@@ -462,9 +457,9 @@ const SECONDARY: React.CSSProperties = {
   minHeight: 44,
   padding: "0 16px",
   borderRadius: 999,
-  border: "1px solid var(--app-border, #E6E6E1)",
+  border: "1px solid rgba(255,255,255,0.18)",
   background: "transparent",
-  color: "var(--app-fg, #111111)",
+  color: "#ffffff",
   fontFamily: "Inter, system-ui, sans-serif",
   fontSize: 15,
   fontWeight: 600,
