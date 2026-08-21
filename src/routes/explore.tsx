@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { APP_NAME } from "@/lib/brand";
 import { useNavStyle } from "@/lib/nav-style";
@@ -7,7 +7,7 @@ import { APP_CONTENT_MAX_WIDTH, navContentReserve } from "@/components/nav/navMe
 import { BottomNav } from "@/components/nav/BottomNav";
 import { blendBoard, fetchExplorePage, type ExploreSite, type ExplorePage } from "@/lib/explore";
 import { BoardPaidTag, BoardRow, BoardStat } from "@/components/BoardRow";
-import { screenshotFor } from "@/lib/screenshots";
+import { screenshotFor, type Screenshot } from "@/lib/screenshots";
 import { OPEN_SITE_KEY } from "@/routes/saved";
 
 export const Route = createFileRoute("/explore")({
@@ -210,60 +210,61 @@ function Card({
 /**
  * The picture at the top of a card.
  *
- * It asks for a capture only once it is near the viewport, so a page of sixty
- * costs sixty browser sessions only if someone actually scrolls past all
- * sixty. Until an image resolves the frame holds its own shape, so nothing
- * below it jumps when one arrives.
+ * It asks for its capture the moment it mounts rather than waiting to be
+ * scrolled to. Explore only ever puts a picture on its top three, so there is
+ * no fan-out to protect against here -- and the observer that used to guard
+ * against one was costing the third card a wait it never needed to have. The
+ * first card's image is the largest thing on the screen, so it says so.
+ *
+ * Until a picture lands the frame holds its own shape and shows the domain
+ * over a slow sheen, so the wait reads as a picture arriving rather than as
+ * an empty box. The sheen stops the moment the request settles, whether or
+ * not it produced anything.
+ *
+ * The source falls back rather than fails: the resized capture, then the
+ * full-size original if the transformer would not serve it, then og_image,
+ * then nothing at all.
  */
 function Shot({ site, rank }: { site: ExploreSite; rank: number }) {
-  const ref = useRef<HTMLSpanElement | null>(null);
+  const [shot, setShot] = useState<Screenshot | null>(null);
   const [src, setSrc] = useState<string | null>(null);
   const [settled, setSettled] = useState(false);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
     let live = true;
-    const start = () => {
-      screenshotFor(site.url)
-        .then((shot) => {
-          if (!live) return;
-          // og_image is the understudy: worse framing, but a real picture of
-          // the site beats an empty frame.
-          setSrc(shot ?? site.image);
-          setSettled(true);
-        })
-        .catch(() => live && setSettled(true));
-    };
-
-    // rootMargin gives the capture a head start on the scroll, so by the time
-    // a card is actually on screen its picture is usually already there.
-    if (typeof IntersectionObserver === "undefined") {
-      start();
-      return () => {
-        live = false;
-      };
-    }
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          io.disconnect();
-          start();
-        }
-      },
-      { rootMargin: "600px 0px" },
-    );
-    io.observe(el);
+    setShot(null);
+    setSrc(null);
+    setSettled(false);
+    screenshotFor(site.url)
+      .then((next) => {
+        if (!live) return;
+        setShot(next);
+        // og_image is the understudy: worse framing, but a real picture of
+        // the site beats an empty frame.
+        setSrc(next ? next.src : site.image);
+        setSettled(true);
+      })
+      .catch(() => live && setSettled(true));
     return () => {
       live = false;
-      io.disconnect();
     };
   }, [site.url, site.image]);
 
+  // One step down the chain per failure, never a loop: resized capture, then
+  // the stored original, then og_image, then an honest empty frame.
+  const stepDown = () => {
+    setSrc((current) => {
+      if (!current) return null;
+      if (shot && current === shot.src) return shot.full;
+      if (site.image && current !== site.image) return site.image;
+      return null;
+    });
+  };
+
+  const lead = rank === 1;
+
   return (
     <span
-      ref={ref}
       style={{
         display: "block",
         position: "relative",
@@ -299,12 +300,30 @@ function Shot({ site, rank }: { site: ExploreSite; rank: number }) {
         {site.domain}
       </span>
 
+      <span
+        aria-hidden="true"
+        className="app-sheen"
+        data-loaded={settled ? "true" : "false"}
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage:
+            "linear-gradient(100deg, rgba(255,255,255,0) 18%, rgba(255,255,255,0.13) 50%, rgba(255,255,255,0) 82%)",
+          backgroundSize: "200% 100%",
+          pointerEvents: "none",
+        }}
+      />
+
       {src ? (
         <img
           src={src}
           alt=""
-          loading="lazy"
-          onError={() => setSrc(null)}
+          // The first card's picture is the biggest thing on the screen and
+          // the reason the page exists; the other two can wait their turn.
+          loading={lead ? "eager" : "lazy"}
+          fetchPriority={lead ? "high" : "auto"}
+          decoding="async"
+          onError={stepDown}
           onLoad={(e) => {
             e.currentTarget.style.opacity = "1";
           }}

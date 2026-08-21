@@ -328,11 +328,11 @@
  * not want. Both marks stay put; the tap still registers everywhere else. */
 @media (prefers-reduced-motion: reduce) {
   .logo-spin,
-  .logo-pulse {
+  .logo-pulse,
+  .app-sheen {
     animation: none;
   }
 }
-
 
 @keyframes like-hint-in {
   from {
