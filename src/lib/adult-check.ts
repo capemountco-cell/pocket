@@ -199,7 +199,7 @@ const SYSTEM = [
   // and tested rather than re-tuned by rewriting a paragraph.
   "You look at a web page and reply with json only, as a single json object:",
   '{"adult": <0-1>, "sells": true|false, "aboutAuthor": true|false,',
-  '"freeToUse": true|false, "kind": "personal"|"commerce"|"blog"|"none",',
+  '"operable": true|false, "kind": "personal"|"commerce"|"blog"|"none",',
   '"reason": "<8 words or fewer>"}.',
   "",
   "adult: 1 means unambiguously pornographic, 0 means clearly not.",
@@ -238,16 +238,18 @@ const SYSTEM = [
   "a bio. A maker's name in the footer is not an about-me. Ask what the page",
   "is FOR: if it is for showing you the thing, this is false.",
   "",
-  "freeToUse: can a visitor use the thing on this page right now, at no cost?",
-  "A tool, a game, a map, a generator, a simulator, an archive, a reference, a",
-  "directory is true. Ignore the address and the title when answering this: a",
-  "product-sounding domain is not a product.",
+  "operable: is the main content something a visitor OPERATES -- a tool, a",
+  "game, a toy, a map, a generator, a simulator, an interactive visualisation?",
+  "Reading an article, browsing a gallery or scrolling a blog is not operating",
+  "something: those are false. Ignore the address and the title when answering",
+  "this; a product-sounding domain is not a product.",
   "",
   "kind: commerce if sells, personal if aboutAuthor and it is a site about the",
   'person, blog if aboutAuthor and it is a blog, "none" if neither.',
   "",
   "Answer each question on its own. They can disagree: a free game made by a",
-  "named person is sells false, aboutAuthor false, freeToUse true.",
+  "named person is sells false, aboutAuthor false, operable true. A personal",
+  "blog is sells false, aboutAuthor true, operable false.",
 ].join(" ");
 
 /**
@@ -536,7 +538,7 @@ export const classifyAdult = createServerFn({ method: "POST" })
         adult?: unknown;
         sells?: unknown;
         aboutAuthor?: unknown;
-        freeToUse?: unknown;
+        operable?: unknown;
         kind?: unknown;
         reason?: unknown;
       };
@@ -547,14 +549,19 @@ export const classifyAdult = createServerFn({ method: "POST" })
       if (parsed.adult === undefined || parsed.adult === null) throw new Error("no verdict");
       const score = clamp01(parsed.adult);
       const sells = parsed.sells === true;
-      const freeToUse = parsed.freeToUse === true;
-      // A personal page has nothing to use; a project has something to use and
-      // usually a name on it too. That difference is the whole discriminator,
-      // and it is the reason the third question is asked at all: without it,
-      // "aboutAuthor" fired on every article, artwork and toy carrying a
-      // byline -- 23 of 80 real catalogue rows, including a mechanical-watch
-      // explainer and Scale of the Universe.
-      const aboutAuthor = parsed.aboutAuthor === true && !freeToUse;
+      const operable = parsed.operable === true;
+      // A thing you operate carries its maker's name without being about
+      // them; a page about a person does not hand you anything to operate.
+      // That is the whole discriminator, and it is why the third question is
+      // asked at all -- without it "aboutAuthor" fired on every artwork and
+      // toy with a byline, 23 of 80 real catalogue rows.
+      //
+      // The question used to ask whether the thing was free to USE, which the
+      // model read to include reading: every personal blog came back operable
+      // and every one of them escaped. Operating is narrower than using, and
+      // narrower is the point -- a personal blog is exactly what should be
+      // priced here.
+      const aboutAuthor = parsed.aboutAuthor === true && !operable;
 
       const named = ["personal", "commerce", "blog"].includes(String(parsed.kind))
         ? (String(parsed.kind) as PricedReason)
