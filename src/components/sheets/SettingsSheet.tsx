@@ -3,7 +3,7 @@ import { THEMES, getCurrentTheme, setTheme, subscribeTheme, type ThemeKey } from
 import { setNavStyle, useNavStyle, type NavStyle } from "@/lib/nav-style";
 import { useEffect, useState } from "react";
 
-// Appearance: the accent theme ramp and which of the two bottom-bar
+// Settings: the accent theme ramp and which of the two bottom-bar
 // presentations the device uses. Both are device-local preferences, so this
 // sheet works identically signed out.
 export function SettingsSheet({
@@ -18,7 +18,7 @@ export function SettingsSheet({
   useEffect(() => subscribeTheme(setThemeState), []);
 
   return (
-    <BaseSheet open={open} onOpenChange={onOpenChange} title="Appearance" eyebrow="Appearance">
+    <BaseSheet open={open} onOpenChange={onOpenChange} title="Settings" eyebrow="Settings">
       <section style={{ padding: "6px 20px 4px" }}>
         <h3 style={GROUP_LABEL}>Theme</h3>
         <div
