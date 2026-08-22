@@ -148,35 +148,24 @@ export function ModernNav(props: NavStyleProps) {
 
 function CommentCount({ n, surface }: { n: number; surface: string }) {
   if (n <= 0) return null;
+  // A dot, not a count. How many there are is not what the bar is for -- the
+  // only question it answers from out here is whether there is anything to
+  // read, and a number large enough to read was a badge the size of the icon
+  // it was annotating. The exact figure is on the row inside the sheet.
   return (
     <span
       aria-hidden="true"
       style={{
         position: "absolute",
-        // Clear of the glyph rather than on it. The nav icon is only 24x20, so
-        // a 16px badge sat on top of it was the same size as the thing it was
-        // annotating and hid the thumbs behind it.
-        top: -7,
-        right: -11,
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        minWidth: 13,
-        height: 13,
-        padding: "0 3px",
+        top: -4,
+        right: -6,
+        width: 8,
+        height: 8,
         borderRadius: 999,
-        background: ICON_REGISTRY.react.accentColor,
+        background: "#ffffff",
         border: "1.5px solid " + surface,
         boxSizing: "content-box",
-        color: "#04201c",
-        fontFamily: "Inter, system-ui, sans-serif",
-        fontSize: 9,
-        fontWeight: 800,
-        fontVariantNumeric: "tabular-nums",
-        lineHeight: 1,
       }}
-    >
-      {n > 99 ? "99+" : n}
-    </span>
+    />
   );
 }

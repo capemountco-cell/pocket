@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { screenshotFor, type Screenshot } from "@/lib/screenshots";
 import { ADULT_PREF_EVENT, alwaysShowAdult } from "@/lib/adult-consent";
 import { clampText } from "@/lib/utils";
+import { mediaKindOf } from "@/lib/media";
 
 /**
  * A site shown as a picture rather than a line.
@@ -35,6 +36,7 @@ export function BoardCard({
   face,
   meta,
   rank,
+  tag,
   lead = false,
   lazy = false,
   actions,
@@ -45,6 +47,8 @@ export function BoardCard({
   meta: ReactNode;
   /** Shown in the corner of the picture. Omitted where order means nothing. */
   rank?: number | undefined;
+  /** A word in the corner instead of a number: "Bookmarked", "Yours". */
+  tag?: string | undefined;
   /** The first card on a screen: bigger type, and its picture loads first. */
   lead?: boolean | undefined;
   /** Wait until the card is near the viewport before paying for a capture. */
@@ -56,7 +60,7 @@ export function BoardCard({
   return (
     <div>
       <button type="button" onClick={onOpen} style={{ ...RESET, width: "100%" }}>
-        <Shot face={face} rank={rank} lead={lead} lazy={lazy} />
+        <Shot face={face} rank={rank} tag={tag} lead={lead} lazy={lazy} />
         <span style={{ display: "block", marginTop: 14 }}>
           <span style={META}>{meta}</span>
           <span
@@ -110,11 +114,13 @@ export function BoardCard({
 function Shot({
   face,
   rank,
+  tag,
   lead,
   lazy,
 }: {
   face: CardFace;
   rank: number | undefined;
+  tag: string | undefined;
   lead: boolean;
   lazy: boolean;
 }) {
@@ -128,6 +134,7 @@ function Shot({
   // the content warning exists to ask about. Unless the reader has turned that
   // warning off, in which case there is nothing left to protect them from.
   const [covered, setCovered] = useState(face.adult);
+  const media = mediaKindOf(face.url);
   const frame = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
@@ -167,6 +174,13 @@ function Shot({
       setSettled(true);
       return;
     }
+    // A direct link to media needs no capture: the thing itself is the
+    // picture, and a still of a gif is the one thing a gif is not.
+    if (media !== null) {
+      setSrc(face.url);
+      setSettled(true);
+      return;
+    }
     screenshotFor(face.url)
       .then((next) => {
         if (!live) return;
@@ -180,11 +194,22 @@ function Shot({
     return () => {
       live = false;
     };
-  }, [face.url, face.image, covered, near]);
+  }, [face.url, face.image, covered, near, media]);
 
   // One step down the chain per failure, never a loop: resized capture, then
   // the stored original, then og_image, then an honest empty frame.
   const stepDown = () => {
+    // A guess from the extension that turns out to be wrong drops back to the
+    // ordinary path rather than to an empty frame: ask for the capture.
+    if (media !== null && src === face.url) {
+      screenshotFor(face.url)
+        .then((next) => {
+          setShot(next);
+          setSrc(next ? next.src : face.image);
+        })
+        .catch(() => setSrc(null));
+      return;
+    }
     setSrc((current) => {
       if (!current) return null;
       if (shot && current === shot.src) return shot.full;
@@ -266,7 +291,33 @@ function Shot({
         }}
       />
 
-      {src ? (
+      {src && media === "video" ? (
+        // Muted, looping and inline: an autoplaying clip with sound in a list
+        // is an ambush, and iOS refuses to play inline at all without both
+        // muted and playsInline. Falls back to the capture if it will not load.
+        <video
+          src={src}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          onError={stepDown}
+          onLoadedData={(e) => {
+            e.currentTarget.style.opacity = "1";
+          }}
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "block",
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            opacity: 0,
+            transition: "opacity 260ms ease-out",
+          }}
+        />
+      ) : src ? (
         <img
           src={src}
           alt=""
@@ -292,6 +343,31 @@ function Shot({
             transition: "opacity 260ms ease-out",
           }}
         />
+      ) : null}
+
+      {rank === undefined && tag ? (
+        <span
+          style={{
+            position: "absolute",
+            top: 12,
+            left: 12,
+            display: "inline-flex",
+            alignItems: "center",
+            height: 28,
+            padding: "0 11px",
+            borderRadius: 999,
+            background: "rgba(0,0,0,0.62)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            border: "1px solid rgba(255,255,255,0.14)",
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: "0.07em",
+            textTransform: "uppercase",
+          }}
+        >
+          {tag}
+        </span>
       ) : null}
 
       {rank !== undefined ? (
