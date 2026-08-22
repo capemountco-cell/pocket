@@ -41,14 +41,23 @@ export function SheetButton({
         borderRadius: 999,
         border: primary ? 0 : "1px solid var(--app-chrome-border, rgba(255,255,255,0.14))",
         background: primary ? "var(--app-chrome-fg, #ffffff)" : "transparent",
-        color: primary ? "var(--app-chrome-bg, #000000)" : "var(--app-chrome-fg, #ffffff)",
+        // Disabled dims the label, never the pill.
+        //
+        // It used to be opacity 0.5 on the whole button, which on a white pill
+        // over black composites to a solid mid-grey with black text -- a
+        // filled, high-contrast control that reads as perfectly tappable. The
+        // pill now keeps its colour and the writing on it goes quiet, which is
+        // how a real control says it has nothing to do yet.
+        color: primary
+          ? disabled
+            ? "rgba(0,0,0,0.32)"
+            : "var(--app-chrome-bg, #000000)"
+          : disabled
+            ? "var(--app-chrome-muted, #9c9c97)"
+            : "var(--app-chrome-fg, #ffffff)",
         fontFamily: "Inter, system-ui, sans-serif",
         fontSize: 17,
         fontWeight: 700,
-        // Dimming is the only disabled signal a filled pill can carry without
-        // changing colour, so it is paired with the real disabled attribute
-        // rather than standing in for it.
-        opacity: disabled ? 0.5 : 1,
         cursor: disabled ? "default" : "pointer",
         WebkitTapHighlightColor: "transparent",
       }}

@@ -5,6 +5,7 @@ import { ICON_REGISTRY } from "@/components/icons";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { SheetButton } from "@/components/ui/sheet-button";
 import { getDeviceId } from "@/lib/device-id";
+import { handleFor } from "@/lib/handles";
 import { recordEvent } from "@/lib/discovery";
 import {
   ago,
@@ -53,6 +54,7 @@ export function CommentsSheet({
   const [failed, setFailed] = useState(false);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [focused, setFocused] = useState(false);
   const field = useRef<HTMLTextAreaElement>(null);
 
   const siteId = site?.id;
@@ -138,13 +140,18 @@ export function CommentsSheet({
       // room all goes to the thread.
       size="full"
       footer={
-        <div style={{ padding: "0 20px 4px" }}>
+        // No padding of its own: BaseSheet's footer already insets 20px, and
+        // adding another 20 here put the field two steps in from the header,
+        // the comment rows and every menu row in the app.
+        <div>
           <textarea
             ref={field}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Say something about this site"
             rows={2}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             // 16px or iOS zooms the whole page on focus.
             style={{
               width: "100%",
@@ -152,7 +159,17 @@ export function CommentsSheet({
               resize: "none",
               padding: "11px 13px",
               borderRadius: 13,
-              border: `1.5px solid ${over ? "#ff6b6b" : "var(--app-chrome-fg, #ffffff)"}`,
+              // A hairline like every other edge in the app. At 1.5px of pure
+              // white it was the brightest thing on the screen -- an empty box
+              // out-shouting the comments it sits under. Focus is what earns
+              // the full-strength edge.
+              border: `1px solid ${
+                over
+                  ? "#ff6b6b"
+                  : focused
+                    ? "var(--app-chrome-fg, #ffffff)"
+                    : "var(--app-chrome-border, rgba(255,255,255,0.14))"
+              }`,
               background: "transparent",
               color: "var(--app-chrome-fg, #ffffff)",
               font: "inherit",
@@ -161,27 +178,28 @@ export function CommentsSheet({
               outline: "none",
             }}
           />
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-              margin: "8px 0 0",
-            }}
-          >
-            {/* Only ever shown when it starts to matter. A counter sitting at
-                500 from the first keystroke is noise. */}
-            <span
-              style={{
-                fontSize: 12.5,
-                fontVariantNumeric: "tabular-nums",
-                color: over ? "#ff6b6b" : MUTED,
-                visibility: left <= 80 ? "visible" : "hidden",
-              }}
-            >
-              {left}
-            </span>
+          {/* The button spans the field above it. The counter used to sit
+              beside it in the same row, hidden with `visibility` until the
+              limit came into view -- which still holds its width, so the
+              button was shoved 36px right of the box it belongs to. It sits
+              over the row instead, taking no space when it has nothing to
+              say. */}
+          <div style={{ position: "relative", margin: "8px 0 0" }}>
+            {left <= 80 ? (
+              <span
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  bottom: "100%",
+                  marginBottom: 6,
+                  fontSize: 12.5,
+                  fontVariantNumeric: "tabular-nums",
+                  color: over ? "#ff6b6b" : MUTED,
+                }}
+              >
+                {left}
+              </span>
+            ) : null}
             <SheetButton onClick={() => void send()} disabled={busy || !draft.trim() || over}>
               {busy ? "Posting…" : "Post"}
             </SheetButton>
@@ -261,7 +279,7 @@ function Comment({
               opacity: comment.mine ? 1 : 0.75,
             }}
           >
-            {comment.mine ? "You" : comment.author}
+            {comment.mine ? "You" : handleFor(comment.author)}
           </span>
           <span style={{ fontSize: 12.5, color: MUTED }}>{ago(comment.createdAt)}</span>
         </div>
