@@ -36,11 +36,18 @@ export function ReactionSheet({
   };
 
   return (
-    <BaseSheet open={open} onOpenChange={onOpenChange} title="Your reaction" eyebrow="Reaction">
+    <BaseSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Your reaction"
+      eyebrow="Reaction"
+      {...(site ? {} : { description: "Open a site first — there's nothing here to react to." })}
+    >
       <SheetRow
         icon={<ThumbsUp size={ICON} />}
         label="I like it"
         onClick={react("like")}
+        disabled={!site}
         selected={current === "like"}
         {...(current === "like" ? { trailing: <Selected /> } : {})}
       />
@@ -48,6 +55,7 @@ export function ReactionSheet({
         icon={<ThumbsDown size={ICON} />}
         label="Not for me"
         onClick={react("not_for_me")}
+        disabled={!site}
         selected={current === "not_for_me"}
         {...(current === "not_for_me" ? { trailing: <Selected /> } : {})}
       />
@@ -55,6 +63,7 @@ export function ReactionSheet({
         icon={<EyeOff size={ICON} />}
         label="Don't show this again"
         onClick={react("hidden")}
+        disabled={!site}
         selected={current === "hidden"}
         {...(current === "hidden" ? { trailing: <Selected /> } : {})}
       />
@@ -66,6 +75,7 @@ export function ReactionSheet({
         icon={<MessageSquare size={ICON} />}
         label="Comments"
         onClick={() => onOpenComments?.()}
+        disabled={!site}
         {...(commentCount > 0 ? { trailing: <Count n={commentCount} /> } : {})}
       />
       <SheetRow
@@ -73,6 +83,7 @@ export function ReactionSheet({
         label="Report spam"
         tone="destructive"
         onClick={react("report")}
+        disabled={!site}
         selected={current === "report"}
         {...(current === "report" ? { trailing: <Selected /> } : {})}
       />

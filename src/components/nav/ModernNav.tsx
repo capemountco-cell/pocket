@@ -22,8 +22,16 @@ const INK = "#ffffff";
 export function ModernNav(props: NavStyleProps) {
   const { slots, glowMenu, menuUnread, glowSubmit, logoRef, navRef, logoSpinKey, logoPulseKey } =
     props;
-  const { onMenuTap, onReactTap, onDiscoverTap, onSendToTap, onSubmitTap, isSaved, reactActive } =
-    slots;
+  const {
+    onMenuTap,
+    onReactTap,
+    onDiscoverTap,
+    onSendToTap,
+    onSubmitTap,
+    isSaved,
+    reactActive,
+    siteActionsDisabled,
+  } = slots;
 
   const setLogoRefs = useBrandMarkMotion({ spinKey: logoSpinKey, pulseKey: logoPulseKey }, logoRef);
 
@@ -81,7 +89,14 @@ export function ModernNav(props: NavStyleProps) {
           </span>
         </NavButton>
 
-        <NavButton label="React" ink={INK} fontSize={14} onClick={onReactTap} active={reactActive}>
+        <NavButton
+          label="React"
+          ink={INK}
+          fontSize={14}
+          onClick={onReactTap}
+          active={reactActive}
+          disabled={siteActionsDisabled}
+        >
           <ReactIcon size={MODERN_ICON_SIZE} state={reactActive ? "active" : "idle"} />
         </NavButton>
 
@@ -105,7 +120,14 @@ export function ModernNav(props: NavStyleProps) {
           <BrandMark size={MODERN_BRAND_SIZE} logoRef={setLogoRefs} />
         </button>
 
-        <NavButton label="Send to" ink={INK} fontSize={14} onClick={onSendToTap} active={isSaved}>
+        <NavButton
+          label="Send to"
+          ink={INK}
+          fontSize={14}
+          onClick={onSendToTap}
+          active={isSaved}
+          disabled={siteActionsDisabled}
+        >
           <SendToIcon size={MODERN_ICON_SIZE} state={isSaved ? "active" : "idle"} />
         </NavButton>
 
