@@ -109,14 +109,42 @@ function signalsIn(raw: string, text: string): string {
       `${prices.length} price-like amount${prices.length === 1 ? "" : "s"} (${prices.slice(0, 3).join(", ")})`,
     );
   }
-  if (/add to (?:cart|bag|basket)|buy now|checkout|proceed to pay/i.test(raw)) {
+  // Read out of the visible text and demanding a whole phrase, for the same
+  // reason prices are: over raw HTML a bare "checkout" matched
+  // `storeCheckoutDomain` in a script tag on Paul Graham's site, and in body
+  // text it matched a blog post saying "run from the project checkout".
+  // Neither page has ever sold anything.
+  if (
+    /\badd to (?:cart|bag|basket|trolley)\b|\bbuy now\b|\b(?:proceed to|go to|continue to) checkout\b|\bcheckout now\b|\bcomplete (?:your )?purchase\b|\bview (?:cart|basket)\b/i.test(
+      text,
+    )
+  ) {
     found.push("a cart or checkout control");
   }
-  if (/per month|per year|\/mo\b|billed (?:annually|monthly)|free trial|subscribe now/i.test(raw)) {
+  // Text too. In markup this matched class names and analytics payloads.
+  if (
+    /\bper month\b|\bper year\b|\/mo\b|\bbilled (?:annually|monthly)\b|\bfree trial\b|\bsubscribe now\b/i.test(
+      text,
+    )
+  ) {
     found.push("subscription wording");
   }
   if (/"@type"\s*:\s*"(?:Product|Offer|AggregateOffer)"|"offers"\s*:/i.test(raw)) {
     found.push("structured data describing a product with an offer");
+  }
+  // What is serving the page, which the page cannot fake and a modern
+  // storefront cannot hide. Allbirds renders its whole product page in
+  // JavaScript -- no price, no cart control and no structured data reach the
+  // markup -- so every text-based signal missed it while the loose "checkout"
+  // regex caught it only by matching a script variable. A shop served by shop
+  // software is a shop. Checked against ten pages: true for the storefront,
+  // false for all six non-commercial ones.
+  if (
+    /Shopify\.shop|shopify-features|cdn\/shop\/|myshopify\.com|woocommerce|bigcommerce|squarespace-commerce|snipcart|gumroad\.com\/l\/|lemonsqueezy|paddle\.com|checkout\.stripe\.com/i.test(
+      raw,
+    )
+  ) {
+    found.push("the page is served by e-commerce software");
   }
   const ogType = raw.match(
     /<meta[^>]+property=["']og:type["'][^>]+content=["']([^"']{1,40})["']/i,
@@ -215,9 +243,11 @@ const SYSTEM = [
   '"Found elsewhere" reports what was seen in the rest of it, and is evidence',
   "about the whole document.",
   "",
-  "Two of those observations settle sells on their own: a cart or checkout",
-  "control, and structured data describing a product with an offer. Either one",
-  "means true even when the visible text says nothing about buying.",
+  "Three of those observations settle sells on their own: a cart or checkout",
+  "control, structured data describing a product with an offer, and the page",
+  "being served by e-commerce software. Any one of them means true even when",
+  "the visible text says nothing about buying -- a modern storefront renders",
+  "its price and its cart in JavaScript, so the text can be silent about both.",
   "",
   "Price-like amounts do NOT settle it and are not enough on their own. Pages",
   "quote figures constantly -- a statistic, a salary, a budget, a joke about a",
