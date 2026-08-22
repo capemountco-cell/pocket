@@ -1,4 +1,12 @@
-import { Bookmark, BookmarkCheck, Compass, ExternalLink, Inbox, Palette, User } from "lucide-react";
+import {
+  Bookmark,
+  BookmarkCheck,
+  Compass,
+  ExternalLink,
+  Inbox,
+  Settings,
+  User,
+} from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { BaseSheet } from "@/components/ui/base-sheet";
@@ -115,7 +123,7 @@ export function MenuSheet({
           );
         }}
       />
-      <SheetRow icon={<Palette size={ICON} />} label="Appearance" onClick={onOpenSettings} />
+      <SheetRow icon={<Settings size={ICON} />} label="Settings" onClick={onOpenSettings} />
     </BaseSheet>
   );
 }
