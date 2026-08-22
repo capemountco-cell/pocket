@@ -166,22 +166,25 @@ export function BidCta({
         >
           {busy ? "Opening checkout…" : board.bids.length === 0 ? "Place the first bid" : "Outbid"}
         </button>
-        {/* Centred, to sit with the subline above the field rather than hang
-            left under the button. This wording runs 62 characters against a
-            column that holds about 50, so it takes two lines -- balanced
-            rather than left-ragged, which is what centring is for. */}
+        {/* Centred and small. It is a footnote to the button above it, not a
+            second instruction, so it reads as an aside rather than competing
+            with the thing it qualifies. Shortened to fit one line: the old
+            wording ran 62 characters and folded onto two, and a two-line
+            footnote under a button reads as a warning. */}
         <p
           style={{
-            margin: "10px auto 0",
-            maxWidth: 330,
-            fontSize: 13,
-            lineHeight: 1.45,
+            margin: "9px auto 0",
+            fontSize: 11.5,
+            lineHeight: 1.4,
             color: FAINT,
             textAlign: "center",
-            textWrap: "balance",
+            // One line at 390px, which is the size this is designed for. Not
+            // nowrap: on a narrower phone a clipped sentence is worse than a
+            // wrapped one, so it is allowed to fold rather than vanish.
+            letterSpacing: "-0.005em",
           }}
         >
-          Already listed? Enter your URL again to maintain your position.
+          Already listed? Re-enter your URL to keep your place.
         </p>
       </div>
     </section>
