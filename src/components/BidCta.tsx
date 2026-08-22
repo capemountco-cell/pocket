@@ -147,8 +147,15 @@ export function BidCta({
             minHeight: 54,
             borderRadius: 14,
             border: 0,
-            background: url.trim().length === 0 ? "rgba(255,255,255,0.14)" : BID_ACCENT,
-            color: url.trim().length === 0 ? "rgba(255,255,255,0.5)" : BID_INK,
+            // White until there is an address, green once there is one. The
+            // grey it used to wear read as broken rather than waiting: on a
+            // black screen a dim grey slab is what a dead control looks like,
+            // and this is the one thing the page is asking you to do. White
+            // keeps it the brightest thing here; the colour change on the way
+            // to green is then a reward for filling the field rather than the
+            // moment the button becomes visible at all.
+            background: url.trim().length === 0 ? "#ffffff" : BID_ACCENT,
+            color: BID_INK,
             fontFamily: "Inter, system-ui, sans-serif",
             fontSize: 17,
             fontWeight: 750,
