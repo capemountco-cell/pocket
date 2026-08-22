@@ -67,17 +67,6 @@ export function ReactionSheet({
         selected={current === "hidden"}
         {...(current === "hidden" ? { trailing: <Selected /> } : {})}
       />
-      {/* Saying something in words belongs with the other ways of judging a
-          site, not off in a sixth nav slot -- the bar is five fixed meanings
-          and muscle memory is the point of that. This is the one row that
-          opens rather than decides, so it carries a count and no tick. */}
-      <SheetRow
-        icon={<MessageSquare size={ICON} />}
-        label="Comments"
-        onClick={() => onOpenComments?.()}
-        disabled={!site}
-        {...(commentCount > 0 ? { trailing: <Count n={commentCount} /> } : {})}
-      />
       <SheetRow
         icon={<Flag size={ICON} />}
         label="Report spam"
@@ -86,6 +75,17 @@ export function ReactionSheet({
         disabled={!site}
         selected={current === "report"}
         {...(current === "report" ? { trailing: <Selected /> } : {})}
+      />
+      {/* Last, and after the destructive row rather than before it. The four
+          above all decide something about the site and then close; this one
+          opens another surface instead, so it sits apart from them at the end
+          rather than splitting the run of verdicts in two. */}
+      <SheetRow
+        icon={<MessageSquare size={ICON} />}
+        label="Comments"
+        onClick={() => onOpenComments?.()}
+        disabled={!site}
+        {...(commentCount > 0 ? { trailing: <Count n={commentCount} /> } : {})}
       />
     </BaseSheet>
   );
