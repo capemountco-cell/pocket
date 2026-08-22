@@ -67,8 +67,8 @@ export function SubmitSheet({
       const verdict = await classifyAdult({ data: { url } }).catch(() => null);
       if (verdict?.adult) {
         const added = await submitAdultSite(deviceId, url);
-        if (!added) {
-          toast("Couldn't add that one just now.");
+        if (!added.ok) {
+          toast(added.message);
           return;
         }
         recordEvent(deviceId, "submit_success");

@@ -46,12 +46,21 @@ const SNIPPET_CHARS = 900;
 const PROBE_UA =
   "Mozilla/5.0 (compatible; PocketBot/1.0; +https://p-o-c-k-e-t.com) AppleWebKit/537.36";
 
-function env(name: string): string | undefined {
+function env(...names: string[]): string | undefined {
   // Nitro's Cloudflare preset populates process.env from the worker bindings.
   // Guarded anyway: this file is imported by client code that never runs the
   // handler, and `process` is not a thing in a browser.
+  //
+  // Several names, first non-empty wins. Unlike the browser side this is a
+  // real lookup at runtime rather than a build-time substitution, so any name
+  // works and the list is only about what the deployment panel will accept.
   try {
-    return typeof process !== "undefined" ? process.env[name] : undefined;
+    if (typeof process === "undefined") return undefined;
+    for (const name of names) {
+      const value = process.env[name];
+      if (typeof value === "string" && value.trim().length > 0) return value.trim();
+    }
+    return undefined;
   } catch {
     return undefined;
   }
@@ -145,7 +154,7 @@ export const classifyAdult = createServerFn({ method: "POST" })
     }
 
     const page = await readPage(target.toString());
-    const key = env("OPENAI_API_KEY");
+    const key = env("POCKET_OPENAI_API_KEY", "OPENAI_API_KEY");
 
     if (!key) {
       const score = fallbackScore(target.toString(), page);
@@ -165,7 +174,7 @@ export const classifyAdult = createServerFn({ method: "POST" })
           "content-type": "application/json",
         },
         body: JSON.stringify({
-          model: env("OPENAI_ADULT_MODEL") ?? DEFAULT_MODEL,
+          model: env("POCKET_OPENAI_MODEL", "OPENAI_ADULT_MODEL") ?? DEFAULT_MODEL,
           messages: [
             { role: "system", content: SYSTEM },
             {
