@@ -9,6 +9,7 @@ import {
   adminStats,
   describeFailure,
 } from "@/lib/admin";
+import { EmbedPanel } from "@/components/admin/EmbedPanel";
 import { Readout } from "@/components/admin/Readout";
 import { useAsync } from "@/components/admin/useAsync";
 import { Btn, Note, Panel } from "@/components/admin/ui";
@@ -98,6 +99,8 @@ export function OverviewPanel({ token }: { token: string }) {
 
   return (
     <div>
+      <EmbedPanel token={token} />
+
       {SECTIONS.map(({ key, title }) => {
         const section = data[key];
         return (

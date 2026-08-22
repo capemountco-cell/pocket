@@ -312,6 +312,32 @@ export const adminDeleteSite = (t: string, id: string) =>
 export const adminSetSubmissionMode = (t: string, mode: string) =>
   call<boolean>(supabase.rpc("admin_set_submission_mode", { p_token: t, p_mode: mode }));
 
+// -- embeddings --------------------------------------------------------------
+
+export type EmbedBatch = {
+  ok: boolean;
+  processed?: number;
+  failed?: number;
+  remaining?: number | null;
+  done?: boolean;
+  message?: string;
+};
+
+/**
+ * One bite of the embedding backfill.
+ *
+ * The function is deliberately resumable rather than one long run -- an edge
+ * function has a wall clock and the catalogue does not fit inside it -- so the
+ * caller loops on `done` and shows `remaining` while it works.
+ */
+export async function embedCatalogue(token: string): Promise<EmbedBatch> {
+  const { data, error } = await supabase.functions.invoke<EmbedBatch>("embed-sites", {
+    body: { token },
+  });
+  if (error) return { ok: false, message: "Couldn't reach the embedding job." };
+  return data ?? { ok: false, message: "The embedding job returned nothing." };
+}
+
 // -- boosts ----------------------------------------------------------------
 
 export const adminBoostDashboard = (t: string) =>
