@@ -162,8 +162,9 @@ const SYSTEM = [
  * does not happen again is that there is only one.
  */
 function classifyRequest(url: string, page: { title: string; description: string; text: string }) {
+  const model = env("POCKET_OPENAI_MODEL", "OPENAI_ADULT_MODEL") ?? DEFAULT_MODEL;
   return {
-    model: env("POCKET_OPENAI_MODEL", "OPENAI_ADULT_MODEL") ?? DEFAULT_MODEL,
+    model,
     messages: [
       { role: "system", content: SYSTEM },
       {
@@ -177,10 +178,16 @@ function classifyRequest(url: string, page: { title: string; description: string
       },
     ],
     response_format: { type: "json_object" },
-    // Generous on purpose. A reasoning model spends this budget thinking
-    // before it writes anything, so a tight cap does not produce a short
-    // answer -- it produces an empty one, with a 200 on it.
-    max_completion_tokens: 800,
+    // A reasoning model spends this budget thinking before it writes anything,
+    // and at 800 it spent all of it: the diagnostic came back finish "length"
+    // with an empty answer, a 200 that parsed to nothing. Two changes, because
+    // either alone leaves the failure reachable.
+    max_completion_tokens: 2000,
+    // Rating a page on two axes is not a problem that rewards deliberation.
+    // Sent only to the gpt-5 family, which is the only one that accepts it --
+    // the model is overridable without a deploy, and a parameter the
+    // replacement rejects would 400 every call the way the missing "json" did.
+    ...(model.startsWith("gpt-5") ? { reasoning_effort: "minimal" } : {}),
   };
 }
 
