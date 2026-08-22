@@ -1,6 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ContentWarning } from "@/components/ContentWarning";
-import { acknowledgeAdult, hasAcknowledgedAdult } from "@/lib/adult-consent";
+import {
+  ADULT_PREF_EVENT,
+  acknowledgeAdult,
+  alwaysShowAdult,
+  hasAcknowledgedAdult,
+} from "@/lib/adult-consent";
+import { embedFor } from "@/lib/embeds";
 import type { DiscoverySite } from "@/lib/discovery";
 
 // Renders one discovery full-bleed. Two presentation modes, equal in polish:
@@ -17,25 +23,38 @@ const EMBED_TIMEOUT_MS = 8000;
 export function SiteViewer({ site }: { site: DiscoverySite }) {
   const [loaded, setLoaded] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
-  // Starts closed and opens on the client, because the answer lives in
-  // sessionStorage and there is none of that during SSR.
+  // Starts closed and opens on the client, because both answers live in
+  // browser storage and there is none of that during SSR.
   const [allowed, setAllowed] = useState(false);
+
+  // A platform that publishes its own embeddable address gets framed at that
+  // address instead. Nothing else about the site changes -- the catalogue's
+  // own `embeddable` flag was read off the canonical page, which is not the
+  // page being framed here, so it does not apply to this branch.
+  const embed = useMemo(() => embedFor(site.url), [site.url]);
 
   useEffect(() => {
     setLoaded(false);
     setTimedOut(false);
-    setAllowed(!site.adult || hasAcknowledgedAdult(site.id));
+    const decide = () =>
+      setAllowed(!site.adult || alwaysShowAdult() || hasAcknowledgedAdult(site.id));
+    decide();
+    // Turning the setting on with a warning already on screen should clear it
+    // there and then rather than on the next site.
+    window.addEventListener(ADULT_PREF_EVENT, decide);
+    return () => window.removeEventListener(ADULT_PREF_EVENT, decide);
   }, [site.id, site.adult]);
 
   // The embed timeout must not run while the warning is up: nothing has been
   // asked for yet, so there is nothing that could have timed out.
+  const framable = embed !== null || site.embeddable;
   useEffect(() => {
-    if (!allowed || !site.embeddable || loaded) return;
+    if (!allowed || !framable || loaded) return;
     const t = setTimeout(() => setTimedOut(true), EMBED_TIMEOUT_MS);
     return () => clearTimeout(t);
-  }, [site.id, site.embeddable, loaded, allowed]);
+  }, [site.id, framable, loaded, allowed]);
 
-  const showPreview = !site.embeddable || timedOut;
+  const showPreview = !framable || timedOut;
 
   const reveal = () => {
     acknowledgeAdult(site.id);
@@ -47,18 +66,20 @@ export function SiteViewer({ site }: { site: DiscoverySite }) {
       <div className="app-viewer-frame">
         {!allowed ? (
           // Returned instead of the frame, never over it. Nothing of the site
-          // is fetched, rendered or played while this is on screen.
+          // is fetched, rendered or played while this is on screen -- which is
+          // as true of an embed as of the page itself.
           <ContentWarning domain={site.domain} onShow={reveal} />
         ) : !showPreview ? (
           <>
             {!loaded && <div className="app-screen-glow" aria-hidden="true" />}
             <iframe
-              key={site.id}
+              key={`${site.id}-${embed ? "embed" : "page"}`}
               className="app-viewer-iframe"
-              src={site.url}
-              title={site.title}
+              src={embed ? embed.src : site.url}
+              title={embed ? `${embed.kind} — ${site.domain}` : site.title}
               onLoad={() => setLoaded(true)}
               referrerPolicy="no-referrer"
+              {...(embed?.allow ? { allow: embed.allow } : {})}
               sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
             />
           </>
