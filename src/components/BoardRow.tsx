@@ -15,6 +15,7 @@ export const BOARD_MUTED = "rgba(255,255,255,0.62)";
 
 export function BoardRow({
   domain,
+  icon,
   title,
   description,
   lead,
@@ -23,6 +24,8 @@ export function BoardRow({
   onOpen,
 }: {
   domain: string;
+  /** Resolved icon address, or null when the catalogue found none. */
+  icon: string | null;
   /** The bold line. Usually the domain; the collection shows the real title. */
   title: string;
   description?: string | null | undefined;
@@ -75,7 +78,7 @@ export function BoardRow({
           </span>
         ) : null}
 
-        <SiteIcon domain={domain} />
+        <SiteIcon domain={domain} icon={icon} />
 
         <span style={{ flex: "1 1 auto", minWidth: 0 }}>
           <span
