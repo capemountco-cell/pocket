@@ -30,7 +30,7 @@ export const OPEN_SITE_KEY = "app_open_site_v1";
 export const Route = createFileRoute("/saved")({
   head: () => ({
     meta: [
-      { title: `Saved — ${APP_NAME}` },
+      { title: `History — ${APP_NAME}` },
       // A personal collection has nothing to offer a search engine.
       { name: "robots", content: "noindex,nofollow" },
     ],
@@ -145,7 +145,7 @@ function SavedPage() {
     // nothing about the collection leaves the device to produce the file.
     const link = document.createElement("a");
     link.href = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
-    link.download = `${APP_NAME.toLowerCase()}-saved.csv`;
+    link.download = `${APP_NAME.toLowerCase()}-history.csv`;
     link.click();
     recordEvent(deviceId, "bookmarks_export");
   };
@@ -191,7 +191,7 @@ function SavedPage() {
               <ArrowLeft size={22} aria-hidden="true" />
             </Link>
             <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: "-0.01em" }}>
-              Saved
+              History
             </h1>
             <span
               style={{
@@ -233,7 +233,7 @@ function SavedPage() {
             />
           ) : tab === "saved" ? (
             sites.length === 0 ? (
-              <Message text="Nothing saved yet. Tap the send icon on a site you want to keep, then choose “Save this site”." />
+              <Message text="Nothing here yet. Tap the send icon on a site you want to keep, then choose “Save this site”." />
             ) : (
               <>
                 {sites.map((site) => (
@@ -349,7 +349,7 @@ function SavedRow({
           <button
             type="button"
             onClick={() => void onRemove(site)}
-            aria-label={`Remove ${site.title} from saved`}
+            aria-label={`Remove ${site.title} from your history`}
             style={ROW_ACTION}
           >
             <Trash2 size={18} aria-hidden="true" />

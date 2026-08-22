@@ -96,7 +96,7 @@ export function MenuSheet({
           nor reachable by keyboard. */}
       <SheetRow
         icon={<Bookmark size={ICON} />}
-        label="Saved sites"
+        label="History"
         onClick={() => {
           onOpenSaved();
           onOpenChange(false);
@@ -118,12 +118,12 @@ export function MenuSheet({
       />
       <SheetRow
         icon={saved ? <BookmarkCheck size={ICON} /> : <Bookmark size={ICON} />}
-        label={saved ? "Remove from saved" : "Save this site"}
+        label={saved ? "Remove from history" : "Save this site"}
         disabled={!site}
         onClick={() => {
           if (!site) return;
           void toggleSaved(site).then((nowSaved) =>
-            toast(nowSaved ? "Saved" : "Removed from saved"),
+            toast(nowSaved ? "Saved" : "Removed from history"),
           );
         }}
       />
@@ -191,7 +191,7 @@ function AccountRow({ auth, onOpenAuth }: { auth: AuthState; onOpenAuth: () => v
           <span
             style={{ display: "block", fontSize: 14, color: "var(--app-chrome-muted, #9c9c97)" }}
           >
-            Your saved sites follow you here
+            Your history follows you here
           </span>
         ) : (
           <button
