@@ -65,7 +65,7 @@ export function SubmitSheet({
       }
       recordEvent(deviceId, "submit_success");
       // The sheet stays open on the outcome instead of closing on a toast: a
-      // link routed to the boost path has somewhere else to go, and a toast
+      // link routed to the auction has somewhere else to go, and a toast
       // is gone before anyone has read it.
       setResult(outcome.destination);
     } catch {

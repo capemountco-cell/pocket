@@ -13,7 +13,7 @@ export type RoutingCopy = {
   title: string;
   /** One supporting line, or empty when no detail should be shown. */
   detail: string;
-  /** Drives the accent: added somewhere, sent to the boost path, or not added. */
+  /** Drives the accent: added somewhere, sent to the auction, or not added. */
   tone: "positive" | "neutral" | "soft-negative";
 };
 
@@ -47,9 +47,12 @@ export function routingCopy(destination: SubmissionDestination | undefined): Rou
         tone: "positive",
       };
     case "boost_only":
+      // The destination keeps its stored name -- it is written to a database
+      // column and read by an edge function. What changed is what it means to
+      // the person reading it: not a lesser tier, an auction they can win.
       return {
-        title: "This one's boost-only.",
-        detail: "Boosting is how a link like this gets distribution.",
+        title: "This one goes to the board.",
+        detail: "Bid to place it, and outbid whoever is above you to move up.",
         tone: "neutral",
       };
     case "none":

@@ -26,7 +26,7 @@ export function BoardRow({
   /** The bold line. Usually the domain; the collection shows the real title. */
   title: string;
   description?: string | null | undefined;
-  /** Rank number, or a short label like "Boosted". */
+  /** Rank number, or a short label like "#4". */
   lead?: ReactNode | undefined;
   /** Right-hand stat. */
   trailing?: ReactNode | undefined;

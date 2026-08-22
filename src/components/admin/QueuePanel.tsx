@@ -165,7 +165,7 @@ function SubmissionRow({
         {verdict ? <Chip>{verdict}</Chip> : null}
         {row.category ? <Chip>{row.category}</Chip> : null}
         {row.is_embeddable === false ? <Chip tone="warn">no embed</Chip> : null}
-        {row.boosted ? <Chip>boosted</Chip> : null}
+        {row.boosted ? <Chip>bid</Chip> : null}
         {row.created_at ? <Chip>{new Date(row.created_at).toLocaleDateString()}</Chip> : null}
       </div>
 
