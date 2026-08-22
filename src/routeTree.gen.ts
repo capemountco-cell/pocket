@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AaravosRouteImport } from './routes/aaravos'
 import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as HistoryRouteImport } from './routes/history'
 import { Route as SavedRouteImport } from './routes/saved'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +30,11 @@ const ExploreRoute = ExploreRouteImport.update({
   path: '/explore',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SavedRoute = SavedRouteImport.update({
   id: '/saved',
   path: '/saved',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/aaravos': typeof AaravosRoute
   '/explore': typeof ExploreRoute
+  '/history': typeof HistoryRoute
   '/saved': typeof SavedRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/aaravos': typeof AaravosRoute
   '/explore': typeof ExploreRoute
+  '/history': typeof HistoryRoute
   '/saved': typeof SavedRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,22 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/aaravos': typeof AaravosRoute
   '/explore': typeof ExploreRoute
+  '/history': typeof HistoryRoute
   '/saved': typeof SavedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/aaravos' | '/explore' | '/saved'
+  fullPaths: '/' | '/aaravos' | '/explore' | '/history' | '/saved'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/aaravos' | '/explore' | '/saved'
-  id: '__root__' | '/' | '/aaravos' | '/explore' | '/saved'
+  to: '/' | '/aaravos' | '/explore' | '/history' | '/saved'
+  id: '__root__' | '/' | '/aaravos' | '/explore' | '/history' | '/saved'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AaravosRoute: typeof AaravosRoute
   ExploreRoute: typeof ExploreRoute
+  HistoryRoute: typeof HistoryRoute
   SavedRoute: typeof SavedRoute
 }
 
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/saved': {
       id: '/saved'
       path: '/saved'
@@ -106,6 +123,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AaravosRoute: AaravosRoute,
   ExploreRoute: ExploreRoute,
+  HistoryRoute: HistoryRoute,
   SavedRoute: SavedRoute,
 }
 export const routeTree = rootRouteImport

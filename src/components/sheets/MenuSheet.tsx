@@ -7,7 +7,7 @@ import {
   Settings,
   User,
 } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { SheetRow, SheetRowBadge } from "@/components/ui/sheet-row";
@@ -48,6 +48,8 @@ export function MenuSheet({
 }) {
   const signedIn = Boolean(auth.session);
   const navigate = useNavigate();
+  // Which page the sheet is sitting over, so it can stop offering it.
+  const here = useRouterState({ select: (state) => state.location.pathname });
   return (
     <BaseSheet
       open={open}
@@ -80,9 +82,13 @@ export function MenuSheet({
           ? { onClick: onOpenInbox }
           : { trailing: <SheetRowBadge>Needs an account</SheetRowBadge> })}
       />
+      {/* A row that navigates to the page you are standing on is a row that
+          does nothing. Every other site-specific row already greys out when
+          it has nothing to act on; these two were the exception. */}
       <SheetRow
         icon={<Compass size={ICON} />}
         label="Explore"
+        disabled={here === "/explore"}
         onClick={() => {
           onOpenChange(false);
           void navigate({ to: "/explore" });
@@ -95,10 +101,11 @@ export function MenuSheet({
       <SheetRow
         icon={<Bookmark size={ICON} />}
         label="History"
+        disabled={here === "/history"}
         onClick={() => {
           onOpenSaved();
           onOpenChange(false);
-          void navigate({ to: "/saved" });
+          void navigate({ to: "/history" });
         }}
       />
       <SheetRow
