@@ -1,13 +1,4 @@
-import {
-  Bookmark,
-  BookmarkCheck,
-  Compass,
-  ExternalLink,
-  Inbox,
-  Palette,
-  Plus,
-  User,
-} from "lucide-react";
+import { Bookmark, BookmarkCheck, Compass, ExternalLink, Inbox, Palette, User } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { BaseSheet } from "@/components/ui/base-sheet";
@@ -32,7 +23,6 @@ export function MenuSheet({
   site,
   saved,
   onOpenSaved,
-  onOpenSubmit,
   onOpenSettings,
   onOpenAuth,
   onOpenInbox,
@@ -43,7 +33,6 @@ export function MenuSheet({
   site: DiscoverySite | undefined;
   saved: boolean;
   onOpenSaved: () => void;
-  onOpenSubmit: () => void;
   onOpenSettings: () => void;
   onOpenAuth: () => void;
   onOpenInbox: () => void;
@@ -103,7 +92,6 @@ export function MenuSheet({
           void navigate({ to: "/saved" });
         }}
       />
-      <SheetRow icon={<Plus size={ICON} />} label="Post a link" onClick={onOpenSubmit} />
       <SheetRow
         icon={<ExternalLink size={ICON} />}
         label="Open current site"
