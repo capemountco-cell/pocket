@@ -172,19 +172,22 @@ function AccountRow({ auth, onOpenAuth }: { auth: AuthState; onOpenAuth: () => v
             type="button"
             onClick={onOpenAuth}
             style={{
-              // 21px of underlined text is a miss waiting to happen. The
-              // padding takes the hit area to 45px and the equal negative
-              // margin gives the space straight back, so the row looks
-              // untouched and the thumb gets somewhere to land.
-              padding: "12px 0",
-              margin: "-12px 0",
+              // 16px of text is a miss waiting to happen. The padding takes
+              // the hit area to 44px and the equal negative margin gives the
+              // space straight back, so the row looks untouched and the thumb
+              // gets somewhere to land.
+              padding: "14px 0",
+              margin: "-14px 0",
               background: "transparent",
               border: 0,
+              // No underline, so full white and a heavier weight are what
+              // separate this from the muted line it replaces. It is the only
+              // thing in the header that is not the name, and it is doing the
+              // work of a link without looking like one.
               color: "var(--app-chrome-fg, #ffffff)",
               fontFamily: "Inter, system-ui, sans-serif",
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: 600,
-              textDecoration: "underline",
               cursor: "pointer",
             }}
           >
