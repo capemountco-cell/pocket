@@ -22,6 +22,8 @@ export type DiscoverySite = {
   // unmeasured would turn the product into a wall of preview cards; SiteViewer
   // already falls back to one when a frame doesn't load in time.
   embeddable: boolean;
+  /** Live comments on this site, so a row can show the number without asking. */
+  commentCount: number;
   // Where the site's icon lives, or null when it has none. Null is an answer,
   // not a gap: the icon services reply to a miss with a decodable grey
   // placeholder, which a browser reports as a successful load, so nothing in
@@ -59,6 +61,9 @@ export function toDiscoverySite(row: SiteRow): DiscoverySite {
     // Respect a measured refusal; try everything else. See the note on the
     // field above -- most rows have never been probed.
     embeddable: row.embeddable !== false,
+    // Newer than the checked-in generated types, which that file says not to
+    // hand-edit -- read defensively rather than forged in there.
+    commentCount: Math.max(0, Number((row as { comment_count?: unknown }).comment_count ?? 0)),
     icon: row.favicon_url ?? null,
   };
 }
@@ -275,6 +280,8 @@ export function recordEvent(deviceId: string, kind: EventKind, siteId?: string):
 export type EventKind =
   | "menu_open"
   | "react_open"
+  | "comments_open"
+  | "comment_add"
   | "sendto_open"
   | "submit_open"
   | "submit_success"

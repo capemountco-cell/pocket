@@ -1,4 +1,4 @@
-import { ThumbsUp, ThumbsDown, EyeOff, Flag } from "lucide-react";
+import { ThumbsUp, ThumbsDown, EyeOff, Flag, MessageSquare } from "lucide-react";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { SheetRow } from "@/components/ui/sheet-row";
 import { setReaction, type ReactionKind } from "@/lib/site-prefs";
@@ -14,12 +14,17 @@ export function ReactionSheet({
   site,
   current,
   onReacted,
+  onOpenComments,
+  commentCount = 0,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   site: DiscoverySite | undefined;
   current?: ReactionKind | undefined;
   onReacted?: ((kind: ReactionKind) => void) | undefined;
+  onOpenComments?: (() => void) | undefined;
+  /** Includes anything posted this session, which the site row predates. */
+  commentCount?: number | undefined;
 }) {
   const react = (kind: ReactionKind) => () => {
     if (!site) return;
@@ -53,6 +58,16 @@ export function ReactionSheet({
         selected={current === "hidden"}
         {...(current === "hidden" ? { trailing: <Selected /> } : {})}
       />
+      {/* Saying something in words belongs with the other ways of judging a
+          site, not off in a sixth nav slot -- the bar is five fixed meanings
+          and muscle memory is the point of that. This is the one row that
+          opens rather than decides, so it carries a count and no tick. */}
+      <SheetRow
+        icon={<MessageSquare size={ICON} />}
+        label="Comments"
+        onClick={() => onOpenComments?.()}
+        {...(commentCount > 0 ? { trailing: <Count n={commentCount} /> } : {})}
+      />
       <SheetRow
         icon={<Flag size={ICON} />}
         label="Report spam"
@@ -62,6 +77,22 @@ export function ReactionSheet({
         {...(current === "report" ? { trailing: <Selected /> } : {})}
       />
     </BaseSheet>
+  );
+}
+
+/** How many are already there. Absent rather than "0" when there are none. */
+function Count({ n }: { n: number }) {
+  return (
+    <span
+      style={{
+        fontSize: 13,
+        fontWeight: 600,
+        fontVariantNumeric: "tabular-nums",
+        color: "var(--app-chrome-muted, #9c9c97)",
+      }}
+    >
+      {n}
+    </span>
   );
 }
 
