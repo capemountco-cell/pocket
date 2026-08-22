@@ -337,10 +337,12 @@ function HistoryPage() {
                 style={{
                   ...SECONDARY,
                   flex: "0 0 auto",
+                  // White pill, quiet label -- the same rule as every other
+                  // primary action. Dimming the whole button turns a white
+                  // pill into a solid mid-grey one, which reads as enabled.
                   background: "#ffffff",
                   borderColor: "#ffffff",
-                  color: "#000000",
-                  opacity: adding || draft.trim().length === 0 ? 0.45 : 1,
+                  color: adding || draft.trim().length === 0 ? "rgba(0,0,0,0.32)" : "#000000",
                 }}
               >
                 {adding ? "Reading…" : "Keep"}

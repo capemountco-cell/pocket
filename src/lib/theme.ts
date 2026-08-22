@@ -392,7 +392,29 @@ let adaptiveSourceUrl: string | null = null;
 // ThemeKey's hue exclusively.
 const VIEWER_CHROME_HEX = "#000000";
 let topChromeColor: { hex: string } | null = null;
-let lastThemeBg = "#F6F6F4";
+
+/**
+ * The colour of the app's own chrome, which is not the colour of its content.
+ *
+ * These were the same variable and they are not the same thing. `--app-bg` is
+ * the content background -- near-white on the default theme -- while
+ * `--app-chrome-bg` is the bar, the sheets and every full-screen surface, and
+ * is solid black there. The meta tag was being set from the first, so the
+ * moment the theme initialised it repainted iOS's status bar and toolbar in
+ * near-white and left a white strip above and below a black app.
+ *
+ * It only showed on screens with no site. The discovery loop pins the meta to
+ * black as soon as one loads, which is why History and Explore were the two
+ * that looked broken.
+ *
+ * Mirrors the rule in styles.css exactly: chrome is black on the white theme,
+ * and follows --app-bg on every coloured one.
+ */
+let lastChromeBg = "#000000";
+
+function chromeBgFor(key: ThemeKey, bg: string): string {
+  return key === "white" ? "#000000" : bg;
+}
 
 function updateThemeColorMeta(hex: string): void {
   if (typeof document === "undefined") return;
@@ -412,7 +434,7 @@ function updateThemeColorMeta(hex: string): void {
 function applyTopChromeColor(c: { hex: string } | null): void {
   topChromeColor = c;
   if (typeof document === "undefined") return;
-  updateThemeColorMeta(c ? c.hex : lastThemeBg);
+  updateThemeColorMeta(c ? c.hex : lastChromeBg);
 }
 
 export function setAdaptiveSource(url: string | null | undefined): void {
@@ -527,10 +549,10 @@ export function applyTheme(key: ThemeKey): void {
   root.style.setProperty("--app-grad-b", tk.gradStopB);
   root.style.setProperty("--app-grad-angle", tk.angle + "deg");
   currentKey = theme.key;
-  lastThemeBg = tk.bg;
+  lastChromeBg = chromeBgFor(theme.key, tk.bg);
   // Only the fallback path owns the meta tag here — a live site color (set by
   // applyTopChromeColor) takes precedence over the static app theme.
-  if (!topChromeColor) updateThemeColorMeta(tk.bg);
+  if (!topChromeColor) updateThemeColorMeta(lastChromeBg);
   notify();
 }
 
