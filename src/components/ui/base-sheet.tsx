@@ -156,11 +156,14 @@ export function BaseSheet({
             style={{
               flex: "0 0 auto",
               // With nothing visible in it, the block still owned 28px of
-              // vertical space and pushed the first real row down.
+              // vertical space and pushed the first real row down. What is
+              // left is breathing room rather than a title's worth of it: a
+              // header sitting 8px under the drag handle reads as pinned to
+              // the top edge, so it clears it properly instead.
               padding: hideTitle
                 ? description
-                  ? "8px 20px 10px"
-                  : "8px 20px 0"
+                  ? "18px 20px 10px"
+                  : "18px 20px 0"
                 : eyebrow
                   ? "14px 20px 10px"
                   : "16px 20px 12px",
