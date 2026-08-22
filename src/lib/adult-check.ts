@@ -134,6 +134,29 @@ function fallbackScore(url: string, page: { title: string; description: string }
   return strong.test(haystack) ? 0.9 : 0;
 }
 
+/**
+ * Whether the server this app runs on can see an OpenAI key.
+ *
+ * Booleans only, never a value or a prefix of one. It exists because the
+ * question is otherwise unanswerable from outside: the key lives in a panel
+ * whose contents nothing here can read, and the classifier fails soft, so a
+ * missing key looks exactly like a working one that scored everything low.
+ *
+ * Worth being precise about which process is being asked. This runs in the
+ * app's own SSR runtime, not in a Supabase edge function -- two different
+ * places with two different environments. A secret set for edge functions is
+ * not automatically visible here, and this is what settles which is which.
+ */
+export const checkAiConfig = createServerFn({ method: "GET" }).handler(
+  (): { openaiKey: boolean; model: string; runtime: string } => ({
+    openaiKey: env("POCKET_OPENAI_API_KEY", "OPENAI_API_KEY") !== undefined,
+    model: env("POCKET_OPENAI_MODEL", "OPENAI_ADULT_MODEL") ?? DEFAULT_MODEL,
+    // Names the process that answered, so a result can never be attributed to
+    // the wrong one.
+    runtime: typeof process !== "undefined" ? "app-server" : "unknown",
+  }),
+);
+
 export const classifyAdult = createServerFn({ method: "POST" })
   .validator((data: unknown): { url: string } => {
     const url = (data as { url?: unknown } | null)?.url;
