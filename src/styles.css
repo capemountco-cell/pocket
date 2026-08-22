@@ -158,8 +158,20 @@
     touch-action: manipulation;
   }
 
+  html,
   body {
-    background-color: var(--color-background);
+    /*
+     * The app's chrome, not its content. Every full-screen surface here is
+     * black, and the document is what paints the safe areas above the status
+     * bar and below the home indicator -- so a light document background put
+     * a white strip at each end of a black app. Themed with the same token as
+     * the bar and the sheets, so a coloured theme carries into the safe areas
+     * rather than stopping at the edge of the layout.
+     */
+    background-color: var(--app-chrome-bg, #000000);
+  }
+
+  body {
     color: var(--color-foreground);
     overflow-x: hidden;
     /*
@@ -520,7 +532,14 @@
  * ===================================================================== */
 
 html[data-app-theme] body {
-  background-color: var(--app-bg, var(--color-background)) !important;
+  /*
+   * --app-chrome-bg, not --app-bg. On a coloured theme these are the same
+   * value, so nothing here changes; on the default one --app-bg is the light
+   * CONTENT background while the chrome is black, and this rule's !important
+   * was repainting the body light underneath a black app. The body is chrome:
+   * it is what shows in the safe areas at each end of the screen.
+   */
+  background-color: var(--app-chrome-bg, var(--color-background)) !important;
   color: var(--app-fg, var(--color-foreground));
 }
 
