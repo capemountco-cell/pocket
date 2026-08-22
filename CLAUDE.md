@@ -53,11 +53,23 @@ columns vs 24 (`final_url`, `og_title`, `og_description`, `favicon_url`,
 older dump onto it must be data-only, or be followed by re-applying the newer
 migrations.
 
-## 3. Deploying is a separate, manual step
+## 3. Deploying is a separate step — and it is yours to take
 
 Merging to `main` does **not** publish. Lovable rebuilds only when someone
-clicks **Publish changes** in the project panel. A merge landing and the live
-site changing are two events, sometimes hours apart.
+publishes. A merge landing and the live site changing are two events, and
+without the second one the first one changes nothing for anyone.
+
+**Standing instruction from the owner: always publish, never wait to be asked.**
+Merge, then publish, then verify — as one action, not three, and not a question
+put to them at the end of it. This is a durable authorisation, not a per-change
+one, and it does not expire between sessions or tasks. The nearest tool is
+`deploy_project` on the Lovable MCP server; the project is `pockettt`
+(`22e0a8b9-c50f-43bf-9d34-6c84f78013c5`) in the "004 - main one" workspace.
+
+The rest of these rules still apply on top of it. A change that fails
+`bun run build`, `bunx tsc --noEmit` or `bunx eslint .` does not get merged, so
+it never reaches this step; and §1 still holds afterwards — a deploy call that
+returned success is not evidence the site changed. Check the bundle.
 
 To check what is actually live, read the deployed bundle rather than trusting
 the panel:
@@ -69,7 +81,8 @@ curl -sS -L --compressed "https://p-o-c-k-e-t.com$JS" -o live.js
 grep -ac 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9' live.js   # is a real key shipped?
 ```
 
-An unchanged bundle hash after a merge means the merge is not live yet.
+An unchanged bundle hash after a publish means the publish has not landed yet.
+Say so in that state rather than reporting it as deployed.
 
 ## 4. Environment variables override committed defaults
 
@@ -120,3 +133,6 @@ bug that hid the whole nav, and a sheet that swallowed every tap on the bar).
 
 When testing against the live database, **clean up afterwards**: delete the rows
 your test device ids created, and restore any counters they moved.
+
+And the work is not done at the merge. Publish it and check the bundle — see
+§3, which is a standing instruction rather than something to ask about.
