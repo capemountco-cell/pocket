@@ -331,6 +331,7 @@ function SavedRow({
   return (
     <BoardRow
       domain={site.domain}
+      icon={site.icon}
       title={site.title}
       description={site.domain}
       onOpen={() => onShow(site)}

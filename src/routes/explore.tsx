@@ -342,6 +342,7 @@ function Position({
     <li>
       <BoardRow
         domain={face.domain}
+        icon={face.icon}
         title={face.domain}
         description={face.description ? clamp(face.description, 90) : null}
         lead={entry.rank}
@@ -366,6 +367,8 @@ type Face = {
   title: string;
   description: string | null;
   image: string | null;
+  /** Resolved icon address, or null when the catalogue found none. */
+  icon: string | null;
 };
 
 function faceOf(entry: BoardEntry): Face {
@@ -378,6 +381,7 @@ function faceOf(entry: BoardEntry): Face {
       title: s.title,
       description: s.description,
       image: s.image,
+      icon: s.icon,
     };
   }
   const b = entry.bid;
@@ -391,6 +395,7 @@ function faceOf(entry: BoardEntry): Face {
     title: title && !/^https?:\/\//i.test(title) ? title : b.domain,
     description: b.description,
     image: b.image,
+    icon: b.icon,
   };
 }
 

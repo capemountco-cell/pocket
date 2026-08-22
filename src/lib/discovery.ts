@@ -22,6 +22,13 @@ export type DiscoverySite = {
   // unmeasured would turn the product into a wall of preview cards; SiteViewer
   // already falls back to one when a frame doesn't load in time.
   embeddable: boolean;
+  // Where the site's icon lives, or null when it has none. Null is an answer,
+  // not a gap: the icon services reply to a miss with a decodable grey
+  // placeholder, which a browser reports as a successful load, so nothing in
+  // the client can tell a real icon from a blank one. The catalogue resolves
+  // it once, server-side, and a row with null here draws its letter straight
+  // away instead of fetching a picture of nothing.
+  icon: string | null;
 };
 
 // The reaction vocabulary the UI speaks. Each maps onto a different write in
@@ -52,6 +59,7 @@ export function toDiscoverySite(row: SiteRow): DiscoverySite {
     // Respect a measured refusal; try everything else. See the note on the
     // field above -- most rows have never been probed.
     embeddable: row.embeddable !== false,
+    icon: row.favicon_url ?? null,
   };
 }
 
