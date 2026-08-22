@@ -76,14 +76,25 @@ function pickTitle(...candidates: (string | null | undefined)[]): string {
  * One serve of candidates for this device, already filtered server-side for
  * anything it disliked, blocked or has seen.
  *
+ * `exclude` is what the caller knows and the server does not yet. A serve is
+ * recorded fire-and-forget, so a top-up requested while the reader is still
+ * tapping through the buffer is answered from a `seen_sites` that has not
+ * caught up -- measured at 8 repeats in a batch of 25. The ids go up with the
+ * request instead of racing it.
+ *
  * With a small catalogue a device exhausts the unseen set quickly. An empty
  * queue is therefore a normal state, not an error: the caller is told so and
  * can offer to start the catalogue over.
  */
-export async function fetchQueue(deviceId: string, limit = 25): Promise<DiscoverySite[]> {
+export async function fetchQueue(
+  deviceId: string,
+  limit = 25,
+  exclude: string[] = [],
+): Promise<DiscoverySite[]> {
   const { data, error } = await supabase.rpc("get_discovery_queue", {
     p_device_id: deviceId,
     p_limit: limit,
+    p_exclude_ids: exclude,
   });
   if (error) throw error;
   return (data ?? []).map(toDiscoverySite);
