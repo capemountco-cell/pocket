@@ -127,7 +127,13 @@ function decode(value: string): string {
 }
 
 const SYSTEM = [
-  "You rate a web page on two independent axes and answer with JSON only:",
+  // The word "json" in lower case is load-bearing, not a typo for "JSON".
+  // response_format: json_object is refused outright unless a message contains
+  // it -- OpenAI answers 400 invalid_request_error, param "messages", and
+  // every call this file makes was failing on exactly that. The prompt already
+  // said "JSON" in capitals, which was not enough.
+  "You rate a web page on two independent axes and reply with json only, as a",
+  "single json object:",
   '{"adult": <0-1>, "own": <0-1>, "kind": "personal"|"commerce"|"blog"|"none", "reason": "<8 words or fewer>"}.',
   "",
   "adult: 1 means unambiguously pornographic, 0 means clearly not.",
@@ -203,9 +209,10 @@ export type AiConfigReport = {
   probe: AiProbe | null;
 };
 
-// Enough for {"ok":1} and not a token more. The probe answers whether the
-// call works, not whether the model is any good at the actual job.
-const PROBE_TOKENS = 16;
+// Enough for {"ok":1} after a reasoning model has finished thinking. Sixteen
+// was enough for the answer and not for the thinking that precedes it, which
+// would have come back as a 200 with nothing in it.
+const PROBE_TOKENS = 300;
 
 /**
  * Whether the server this app runs on can see an OpenAI key, and whether that
@@ -250,7 +257,10 @@ async function probeModel(key: string, model: string): Promise<AiProbe> {
       headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
       body: JSON.stringify({
         model,
-        messages: [{ role: "user", content: 'Answer with {"ok":1} and nothing else.' }],
+        messages: [
+          // Contains "json" for the same reason the system prompt above does.
+          { role: "user", content: 'Reply with the json object {"ok":1} and nothing else.' },
+        ],
         response_format: { type: "json_object" },
         max_completion_tokens: PROBE_TOKENS,
       }),
