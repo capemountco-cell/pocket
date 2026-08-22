@@ -68,7 +68,6 @@ export function NavSheets({
         site={site}
         saved={isSaved}
         onOpenSaved={() => recordSheetEvent("bookmarks_open")}
-        onOpenSubmit={() => openFromSheet("submit", "submit_open")}
         onOpenSettings={() => openFromSheet("settings", "preferences_open")}
         onOpenAuth={() => openFromSheet("auth", "auth_open")}
         onOpenInbox={() => openFromSheet("inbox", "menu_open")}
