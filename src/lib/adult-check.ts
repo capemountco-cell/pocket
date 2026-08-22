@@ -140,32 +140,47 @@ const SYSTEM = [
   "Nudity in art, medicine, sex education, or news reporting is NOT adult: below 0.3.",
   "Dating, lingerie retail, and mature-themed games are NOT adult unless sexually explicit.",
   "",
-  // "own" used to be described as promoting "whoever made it", and the model
-  // read that as strictly personal: a corporate storefront scored 0.15-0.25
-  // across repeated runs while the same prompt told it a product page was a 1.
-  // The axis is about the page's purpose, not about whose page it is, and it
-  // now says so before it says anything else.
-  "own: whether this page exists to sell or promote something. WHO owns it does",
-  "not matter -- a one-person shop and a national retailer score the same.",
+  // Two rewrites of this axis, and both failed in opposite directions,
+  // measured against 80 real catalogue rows each time.
+  //
+  // The first said the page "exists to promote whoever made it", which reads
+  // as personal promotion: a national retailer scored 0.15-0.25 and no shop
+  // was ever priced.
+  //
+  // The second listed categories and said each was worth 0.9 "with no further
+  // test". That priced 34 of the 80 -- free tools, wind maps, open-source
+  // downloaders -- and several of the model's own reasons said "not selling"
+  // beside a 0.9. A category list invites pattern-matching on surface, and
+  // almost everything has a landing page.
+  //
+  // So it is a decision procedure now: start at zero, raise only on evidence
+  // that can be pointed at, and name the confusions that actually occurred.
+  "own: whether this page exists to get its owner seen or paid. Start at 0 and",
+  "raise it only on evidence you can point to on the page itself.",
   "",
-  "Score own 0.9 or above for ANY of these, with no further test:",
-  "- a page selling a product or service, or a storefront, or a product landing page",
-  "- a pricing page, a booking page, or a page whose main action is buy or subscribe",
-  "- a personal homepage, portfolio, CV, freelance or agency site",
-  "- a personal blog, meaning one about its author's life, work or services",
-  "A well-known brand still scores 0.9 or above. Being a real company is not a reason",
-  "to score lower; it is the clearest case of the thing being measured.",
+  "Score own 0.9 or above only if at least one of these is plainly true:",
+  "- something on the page is for sale, has a price, or requires payment or a",
+  "  subscription to use",
+  "- the page's purpose is to introduce a person and their work for hire: a CV,",
+  "  a portfolio, an about-me, a freelance or agency site",
+  "- it is a personal blog, meaning its subject is its author's own life, work",
+  "  or services",
   "",
-  "Score own below 0.2 for something worth stumbling onto regardless of who made it:",
-  "a toy, a game, a visualisation, a tool, an archive, a reference, or an essay about",
-  "a subject rather than about its author.",
+  "Score own below 0.2 when the thing on the page is free to use right there.",
+  "A tool, a game, a toy, a map, a visualisation, a generator, a simulator, an",
+  "archive, a reference, a directory, or an essay about a subject is NOT",
+  "promotion -- and none of them become promotion by having a name, a logo, a",
+  "landing page, a product-sounding domain, a donate link, or a byline.",
   "",
-  'Set "kind" to commerce for anything being sold, personal for someone presenting',
-  'themselves, blog for a personal blog, or "none" when own is low.',
+  "Free software with a homepage is not a shop. A project someone is proud of",
+  "is not a portfolio. If nothing is for sale and the page is not about its",
+  "author, score below 0.2 however polished and branded it looks.",
   "",
-  "A hobby project, demo or experiment is NOT promotion even on a personal domain, and",
-  "even if its author is named on it: score own below 0.2. If the evidence is thin, or",
-  "the page is only navigation, judge it on what the address and title say it is.",
+  'Set "kind" to commerce when something is for sale, personal when someone is',
+  'presenting themselves, blog for a personal blog, or "none" when own is low.',
+  "",
+  "If the evidence is thin or you are unsure, score below 0.3. Your reason must",
+  'agree with your score: never write "not selling" and score above 0.5.',
 ].join(" ");
 
 /**
