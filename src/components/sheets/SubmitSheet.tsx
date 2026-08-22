@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { ClipboardPaste } from "lucide-react";
 import { toast } from "sonner";
 import { BaseSheet } from "@/components/ui/base-sheet";
@@ -7,6 +8,7 @@ import { recordEvent, submitSite } from "@/lib/discovery";
 import { routingCopy, type SubmissionDestination } from "@/lib/submission-routing";
 import { useAuth } from "@/lib/auth";
 import { getDeviceId } from "@/lib/device-id";
+import { classifyAdult } from "@/lib/adult-check";
 
 // Anything a person types has to survive being wrong: a bare hostname, a
 // stray space, a copied "www." prefix. Repair what's repairable before
@@ -29,6 +31,7 @@ export function SubmitSheet({
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<SubmissionDestination | null>(null);
   const auth = useAuth();
+  const navigate = useNavigate();
 
   // A sheet that reopens holding the last attempt reads as broken state.
   useEffect(() => {
@@ -55,9 +58,22 @@ export function SubmitSheet({
     setBusy(true);
     setResult(null);
     try {
-      // Everything -- normalising, safety, embeddability, the Grok judgement,
-      // the banned list, the auto/review setting, the insert -- happens inside
-      // classify-submission. Nothing is decided on this side.
+      // Adult links are priced rather than refused, and that has to be settled
+      // before the row is written: classify-submission would reject this one
+      // outright, and its deploy pipeline cannot be changed from here. A link
+      // over the line is carried straight to the auction with its address
+      // already in the field -- nobody should have to type it twice.
+      const verdict = await classifyAdult({ data: { url } }).catch(() => null);
+      if (verdict?.adult) {
+        recordEvent(deviceId, "submit_success");
+        onOpenChange(false);
+        void navigate({ to: "/explore", search: { url, priced: true } });
+        return;
+      }
+
+      // Everything else -- normalising, safety, embeddability, the model's
+      // judgement, the banned list, the auto/review setting, the insert --
+      // happens inside classify-submission. Nothing is decided on this side.
       const outcome = await submitSite(deviceId, url, auth.user?.id);
       if (!outcome.ok) {
         toast(outcome.reason);
@@ -91,7 +107,15 @@ export function SubmitSheet({
         )
       }
     >
-      {result ? <Outcome destination={result} /> : null}
+      {result ? (
+        <Outcome
+          destination={result}
+          onBid={() => {
+            onOpenChange(false);
+            void navigate({ to: "/explore", search: { url: tidyUrl(value) } });
+          }}
+        />
+      ) : null}
       <div style={{ padding: "4px 20px 18px", display: result ? "none" : "block" }}>
         <div
           style={{
@@ -164,7 +188,13 @@ export function SubmitSheet({
 // What the classifier decided, said plainly. Colour carries the tone and the
 // words repeat it, so the meaning does not depend on seeing the difference
 // between a green and an amber line.
-function Outcome({ destination }: { destination: SubmissionDestination }) {
+function Outcome({
+  destination,
+  onBid,
+}: {
+  destination: SubmissionDestination;
+  onBid: () => void;
+}) {
   const copy = routingCopy(destination);
   const ink =
     copy.tone === "positive"
@@ -189,6 +219,30 @@ function Outcome({ destination }: { destination: SubmissionDestination }) {
         >
           {copy.detail}
         </p>
+      ) : null}
+      {destination === "boost_only" ? (
+        // Telling someone to bid without handing them the way there is most of
+        // a dead end. The address goes with them so the form is already full.
+        <button
+          type="button"
+          onClick={onBid}
+          style={{
+            appearance: "none",
+            margin: "14px 0 0",
+            padding: "11px 16px",
+            borderRadius: 12,
+            border: 0,
+            background: "var(--app-accent-warm, #E5C800)",
+            color: "#161600",
+            font: "inherit",
+            fontSize: 15,
+            fontWeight: 750,
+            cursor: "pointer",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          Place a bid
+        </button>
       ) : null}
     </div>
   );

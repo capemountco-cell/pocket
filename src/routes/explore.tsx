@@ -20,6 +20,14 @@ import { screenshotFor, type Screenshot } from "@/lib/screenshots";
 import { OPEN_SITE_KEY } from "@/routes/saved";
 
 export const Route = createFileRoute("/explore")({
+  // Arriving from a submission that has to be paid for: the address comes with
+  // the person so the form is already filled when they get here.
+  validateSearch: (search: Record<string, unknown>): { url?: string; priced?: boolean } => ({
+    ...(typeof search["url"] === "string" && search["url"].length <= 2048
+      ? { url: search["url"] }
+      : {}),
+    ...(search["priced"] === true || search["priced"] === "true" ? { priced: true } : {}),
+  }),
   head: () => ({
     meta: [
       { title: `Explore — ${APP_NAME}` },
@@ -59,6 +67,7 @@ export const Route = createFileRoute("/explore")({
 function ExploreScreen() {
   const navStyle = useNavStyle();
   const navigate = useNavigate();
+  const { url: handedUrl, priced } = Route.useSearch();
   const [state, setState] = useState<ExploreBoard | null>(null);
   const [failed, setFailed] = useState(false);
   const [nonce, setNonce] = useState(0);
@@ -242,7 +251,10 @@ function ExploreScreen() {
             padding: "6px 20px 32px",
           }}
         >
-          {state ? <BidCta board={state.board} onPlaced={reload} /> : null}
+          {priced ? <PricedNote /> : null}
+          {state ? (
+            <BidCta board={state.board} onPlaced={reload} initialUrl={handedUrl ?? ""} />
+          ) : null}
 
           {failed ? (
             <Note text="Couldn't reach the catalogue." />
@@ -326,6 +338,7 @@ function Position({
                 <>
                   {" · "}
                   <span style={{ color: BID_ACCENT }}>{money(entry.bid.amountCents)}</span>
+                  {face.adult ? <> · 18+</> : null}
                 </>
               ) : (
                 earnedMeta(entry.site.likes, entry.site.tags[0])
@@ -348,7 +361,10 @@ function Position({
         lead={entry.rank}
         trailing={
           paid ? (
-            <BidAmount cents={entry.bid.amountCents} />
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+              {face.adult ? <AdultTag /> : null}
+              <BidAmount cents={entry.bid.amountCents} />
+            </span>
           ) : entry.site.likes > 0 ? (
             <BoardStat value={entry.site.likes} unit="likes" />
           ) : undefined
@@ -369,6 +385,8 @@ type Face = {
   image: string | null;
   /** Resolved icon address, or null when the catalogue found none. */
   icon: string | null;
+  /** Adult, and marked as such wherever it is shown. */
+  adult: boolean;
 };
 
 function faceOf(entry: BoardEntry): Face {
@@ -382,6 +400,7 @@ function faceOf(entry: BoardEntry): Face {
       description: s.description,
       image: s.image,
       icon: s.icon,
+      adult: false,
     };
   }
   const b = entry.bid;
@@ -396,6 +415,7 @@ function faceOf(entry: BoardEntry): Face {
     description: b.description,
     image: b.image,
     icon: b.icon,
+    adult: b.adult,
   };
 }
 
@@ -756,6 +776,35 @@ function Shot({ face, rank }: { face: Face; rank: number }) {
  * was bought AND what it took, which is also the number anyone wanting that
  * spot has to beat.
  */
+/**
+ * Marks a bought place as adult.
+ *
+ * Not a warning and not a euphemism -- adult sites are allowed here, they just
+ * have to pay for the position. What a reader is owed is knowing which row is
+ * which before they tap it.
+ */
+function AdultTag() {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        height: 19,
+        padding: "0 6px",
+        borderRadius: 999,
+        border: "1px solid rgba(255,255,255,0.22)",
+        fontSize: 10,
+        fontWeight: 800,
+        letterSpacing: "0.04em",
+        color: "rgba(255,255,255,0.62)",
+        whiteSpace: "nowrap",
+      }}
+    >
+      18+
+    </span>
+  );
+}
+
 function BidAmount({ cents }: { cents: number }) {
   return (
     <span
@@ -770,6 +819,36 @@ function BidAmount({ cents }: { cents: number }) {
     >
       {money(cents)}
     </span>
+  );
+}
+
+/**
+ * Why this address is here rather than in the queue.
+ *
+ * Said plainly and without euphemism. Someone who submitted a link and got
+ * moved to an auction is owed the reason, and a vague "this one goes to the
+ * board" reads as a system malfunctioning rather than a rule being applied.
+ */
+function PricedNote() {
+  return (
+    <div
+      role="status"
+      style={{
+        margin: "2px 0 18px",
+        padding: "13px 15px",
+        borderRadius: 14,
+        border: `1px solid ${BID_ACCENT}44`,
+        background: `${BID_ACCENT}12`,
+      }}
+    >
+      <p style={{ margin: 0, fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.01em" }}>
+        This one needs a bid.
+      </p>
+      <p style={{ margin: "5px 0 0", fontSize: 13.5, lineHeight: 1.45, color: MUTED }}>
+        Adult sites don't go into the free queue, but they can hold a place on the board like
+        anything else. Your address is filled in below — name your price.
+      </p>
+    </div>
   );
 }
 
