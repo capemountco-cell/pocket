@@ -198,3 +198,27 @@ export function handleFor(author: string): string {
   const noun = NOUNS[Math.floor(n / ADJECTIVES.length) % NOUNS.length] ?? "otter";
   return `${adjective}-${noun}`;
 }
+
+/**
+ * A colour for a handle, from the same fragment the handle came from.
+ *
+ * Same discipline as the theme ramp in src/lib/theme.ts: lightness and chroma
+ * are fixed and only the hue moves, so every commenter reads as equally vivid
+ * and no one gets a name that is harder to see than everyone else's. On a
+ * black sheet that matters more than variety -- a randomly picked colour would
+ * put someone at 30% contrast next to someone at 90%.
+ *
+ * Deterministic, like the name, so a person is one colour everywhere. And
+ * separate from the name's own hash slice, so two people whose names start
+ * with the same word are not also the same colour.
+ */
+export function colorFor(author: string): string {
+  const clean = author.trim().toLowerCase();
+  if (!/^[0-9a-f]{1,8}$/.test(clean)) return "var(--app-chrome-fg, #ffffff)";
+  const n = Number.parseInt(clean, 16);
+  if (!Number.isFinite(n)) return "var(--app-chrome-fg, #ffffff)";
+  // A third slice of the same number, stepped by a large coprime so that
+  // neighbouring fragments land far apart on the wheel.
+  const hue = (n * 137) % 360;
+  return `oklch(0.82 0.13 ${hue})`;
+}

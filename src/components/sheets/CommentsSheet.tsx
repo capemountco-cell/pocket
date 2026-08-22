@@ -5,7 +5,7 @@ import { ICON_REGISTRY } from "@/components/icons";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { SheetButton } from "@/components/ui/sheet-button";
 import { getDeviceId } from "@/lib/device-id";
-import { handleFor } from "@/lib/handles";
+import { colorFor, handleFor } from "@/lib/handles";
 import { recordEvent } from "@/lib/discovery";
 import {
   ago,
@@ -119,9 +119,17 @@ export function CommentsSheet({
   const report = async (comment: SiteComment) => {
     const deviceId = getDeviceId();
     if (!deviceId) return;
+    // Thanked and gone on the tap, not after the round trip. Reporting
+    // something is a thing you do to stop seeing it, and a comment that sits
+    // there for another second while the network thinks reads as a tap that
+    // missed. It comes back if the write fails.
+    setComments((prev) => prev?.filter((c) => c.id !== comment.id) ?? prev);
+    toast("Thanks — sent for review.");
     const ok = await reportComment(deviceId, comment.id);
-    toast(ok ? "Reported. Thanks." : "Couldn't report that.");
-    if (ok) void load();
+    if (!ok) {
+      toast("Couldn't report that.");
+      void load();
+    }
   };
 
   const left = COMMENT_MAX - draft.trim().length;
@@ -227,10 +235,11 @@ export function CommentsSheet({
           <Empty text="Nothing yet. Be the first." />
         ) : (
           <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-            {comments.map((comment) => (
+            {comments.map((comment, index) => (
               <Comment
                 key={comment.id}
                 comment={comment}
+                last={index === comments.length - 1}
                 onRemove={() => void remove(comment)}
                 onReport={() => void report(comment)}
               />
@@ -244,10 +253,13 @@ export function CommentsSheet({
 
 function Comment({
   comment,
+  last,
   onRemove,
   onReport,
 }: {
   comment: SiteComment;
+  /** The rule separates comments; the final one has nothing to separate. */
+  last: boolean;
   onRemove: () => void;
   onReport: () => void;
 }) {
@@ -261,7 +273,7 @@ function Comment({
         alignItems: "center",
         gap: 8,
         padding: "12px 0",
-        borderBottom: "1px solid rgba(128,128,128,0.16)",
+        borderBottom: last ? 0 : "1px solid rgba(128,128,128,0.16)",
       }}
     >
       <div style={{ flex: "1 1 auto", minWidth: 0 }}>
@@ -272,11 +284,12 @@ function Comment({
               fontWeight: 700,
               letterSpacing: "0.03em",
               fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-              // Yours in the sheet's own accent, at full strength; everyone
-              // else's in the same white as the words, held back a little so
-              // the byline never outweighs what was said.
-              color: comment.mine ? MINE : "var(--app-chrome-fg, #ffffff)",
-              opacity: comment.mine ? 1 : 0.75,
+              // Yours in the sheet's own accent; everyone else's in a colour
+              // of their own, derived from the same fragment as their name so
+              // a person is one colour on every site. Full strength for all of
+              // them: the ramp holds lightness and chroma fixed, so no handle
+              // is harder to read than another.
+              color: comment.mine ? MINE : colorFor(comment.author),
             }}
           >
             {comment.mine ? "You" : handleFor(comment.author)}

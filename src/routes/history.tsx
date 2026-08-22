@@ -503,6 +503,9 @@ function SavedCard({
         face={face}
         lead={lead}
         lazy={!lead}
+        // Where Explore puts a rank. These are not ranked against each other,
+        // and the one thing worth saying about a row here is how it got here.
+        tag="Bookmarked"
         meta={
           <>
             {site.adult ? <>18+ · </> : null}
@@ -566,6 +569,7 @@ function ManualCard({
       <BoardCard
         face={face}
         lazy
+        tag="Kept"
         meta={<>{entry.domain} · yours only</>}
         onOpen={() => window.open(entry.url, "_blank", "noopener,noreferrer")}
         actions={
