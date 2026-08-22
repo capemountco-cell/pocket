@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ExternalLink, Trash2 } from "lucide-react";
+import { ArrowLeft, ClipboardPaste, ExternalLink, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { APP_NAME } from "@/lib/brand";
 import { getDeviceId } from "@/lib/device-id";
@@ -17,7 +17,17 @@ import {
 } from "@/lib/discovery";
 import { APP_CONTENT_MAX_WIDTH, navContentReserve } from "@/components/nav/navMetrics";
 import { BottomNav } from "@/components/nav/BottomNav";
-import { BoardRow, BOARD_MUTED } from "@/components/BoardRow";
+import { BOARD_MUTED } from "@/components/BoardRow";
+import { BoardCard, type CardFace } from "@/components/BoardCard";
+import { clampText } from "@/lib/utils";
+import { probeEmbeddable } from "@/lib/embeddability";
+import {
+  addManualEntry,
+  manualEntries,
+  removeManualEntry,
+  tidyUrl,
+  type ManualEntry,
+} from "@/lib/manual-history";
 
 // How many rows to pull per request. Large enough that most collections load
 // in one go, small enough that the 1,441-row case doesn't block first paint.
@@ -47,6 +57,9 @@ function SavedPage() {
   const [tab, setTab] = useState<Tab>("saved");
 
   const [sites, setSites] = useState<DiscoverySite[]>([]);
+  const [manual, setManual] = useState<ManualEntry[]>([]);
+  const [draft, setDraft] = useState("");
+  const [adding, setAdding] = useState(false);
   const [submissions, setSubmissions] = useState<MySubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -58,6 +71,7 @@ function SavedPage() {
     initNavStyle();
     const id = getDeviceId();
     setDeviceId(id);
+    setManual(manualEntries());
     if (id) void initSitePrefs(id);
   }, []);
 
@@ -96,6 +110,54 @@ function SavedPage() {
     } finally {
       setLoadingMore(false);
     }
+  };
+
+  // A typed address is read before it is kept, so the card can carry the
+  // page's real name instead of its hostname. The probe already exists for
+  // the submission pipeline and answers with the title, the address after any
+  // redirects, and the domain -- everything a card needs.
+  const addManual = async () => {
+    const url = tidyUrl(draft);
+    if (!url || adding) return;
+    setAdding(true);
+    try {
+      const probe = await probeEmbeddable({ data: { url } }).catch(() => null);
+      const resolved = probe?.ok ? probe : null;
+      const target = resolved?.url ?? url;
+      let domain = resolved?.domain ?? "";
+      if (!domain) {
+        try {
+          domain = new URL(target).hostname.replace(/^www\./, "");
+        } catch {
+          toast("That doesn't look like a web address.");
+          return;
+        }
+      }
+      setManual(() => {
+        addManualEntry({ url: target, domain, title: resolved?.title || domain });
+        return manualEntries();
+      });
+      setDraft("");
+      // No event for this one. A manual entry never leaves the device, and
+      // record_event drops any kind not on its own allowlist -- adding a name
+      // here without the matching migration would post nothing, silently.
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const paste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) setDraft(text.trim());
+    } catch {
+      toast("Clipboard access was refused — paste with your keyboard instead.");
+    }
+  };
+
+  const dropManual = (entry: ManualEntry) => {
+    removeManualEntry(entry.id);
+    setManual(manualEntries());
   };
 
   const remove = async (site: DiscoverySite) => {
@@ -151,8 +213,8 @@ function SavedPage() {
   };
 
   const rows = useMemo(
-    () => (tab === "saved" ? sites.length : submissions.length),
-    [tab, sites, submissions],
+    () => (tab === "saved" ? sites.length + manual.length : submissions.length),
+    [tab, sites, manual, submissions],
   );
 
   return (
@@ -213,6 +275,81 @@ function SavedPage() {
             <TabButton current={tab} value="saved" label="Sites" onSelect={setTab} />
             <TabButton current={tab} value="submitted" label="Submitted" onSelect={setTab} />
           </div>
+
+          {/* Above the list, not behind a sheet: keeping a link you already
+              have in your hand is the one thing you come to this screen to do
+              that is not reading it. */}
+          {tab === "saved" ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void addManual();
+              }}
+              style={{ display: "flex", gap: 8, margin: "14px 0 2px" }}
+            >
+              <span style={{ position: "relative", flex: "1 1 auto", minWidth: 0 }}>
+                <input
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder="Paste a link to keep"
+                  inputMode="url"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  aria-label="Address to keep"
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    minHeight: 44,
+                    padding: "0 44px 0 14px",
+                    borderRadius: 999,
+                    border: "1px solid rgba(255,255,255,0.18)",
+                    background: "transparent",
+                    color: "#ffffff",
+                    fontFamily: "Inter, system-ui, sans-serif",
+                    // 16px or iOS zooms the whole page on focus.
+                    fontSize: 16,
+                    outline: "none",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => void paste()}
+                  aria-label="Paste from the clipboard"
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    right: 0,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 44,
+                    height: 44,
+                    border: 0,
+                    background: "transparent",
+                    color: BOARD_MUTED,
+                    cursor: "pointer",
+                  }}
+                >
+                  <ClipboardPaste size={18} aria-hidden="true" />
+                </button>
+              </span>
+              <button
+                type="submit"
+                disabled={adding || draft.trim().length === 0}
+                style={{
+                  ...SECONDARY,
+                  flex: "0 0 auto",
+                  background: "#ffffff",
+                  borderColor: "#ffffff",
+                  color: "#000000",
+                  opacity: adding || draft.trim().length === 0 ? 0.45 : 1,
+                }}
+              >
+                {adding ? "Reading…" : "Keep"}
+              </button>
+            </form>
+          ) : null}
         </header>
 
         <div
@@ -232,12 +369,21 @@ function SavedPage() {
               action={{ label: "Try again", run: () => deviceId && void load(deviceId) }}
             />
           ) : tab === "saved" ? (
-            sites.length === 0 ? (
-              <Message text="Nothing here yet. Tap the send icon on a site you want to keep, then choose “Save this site”." />
+            sites.length + manual.length === 0 ? (
+              <Message text="Nothing here yet. Open the menu on a site you want to keep and choose “Save this site” — or paste an address above." />
             ) : (
               <>
-                {sites.map((site) => (
-                  <SavedRow key={site.id} site={site} onShow={show} onRemove={remove} />
+                {manual.map((entry) => (
+                  <ManualCard key={entry.id} entry={entry} onRemove={dropManual} />
+                ))}
+                {sites.map((site, index) => (
+                  <SavedCard
+                    key={site.id}
+                    site={site}
+                    lead={manual.length === 0 && index === 0}
+                    onShow={show}
+                    onRemove={remove}
+                  />
                 ))}
                 {!reachedEnd ? (
                   <button
@@ -315,48 +461,131 @@ function TabButton({
   );
 }
 
-function SavedRow({
+/**
+ * A saved site, shown the way Explore shows one.
+ *
+ * Same card, same picture, same proportions -- History is a board of sites and
+ * arriving at it should not feel like arriving at a different app. What it
+ * does not have is a rank: these are not in a contest with each other, they
+ * are things you kept, so the corner badge stays off and the eyebrow carries
+ * the address instead.
+ *
+ * Every card here gets a picture, which Explore's top three do not have to pay
+ * for: a capture is a headless browser session, so all but the first wait
+ * until they are within a screen of being looked at.
+ */
+function SavedCard({
   site,
+  lead,
   onShow,
   onRemove,
 }: {
   site: DiscoverySite;
+  lead: boolean;
   onShow: (s: DiscoverySite) => void;
   onRemove: (s: DiscoverySite) => Promise<void>;
 }) {
-  // Title on the bold line here rather than the domain: on Explore you are
-  // scanning for something new and the address is the identity, but a
-  // collection is things you already chose, and you remember what you called
-  // them. The domain moves to the second line.
+  const face: CardFace = {
+    id: site.id,
+    url: site.url,
+    domain: site.domain,
+    // Title on the bold line here rather than the domain: on Explore you are
+    // scanning for something new and the address is the identity, but a
+    // collection is things you already chose, and you remember what you called
+    // them. The address moves up into the eyebrow.
+    title: site.title,
+    description: site.blurb ? clampText(site.blurb, 140) : null,
+    image: null,
+    adult: site.adult,
+  };
   return (
-    <BoardRow
-      domain={site.domain}
-      icon={site.icon}
-      title={site.title}
-      description={site.domain}
-      onOpen={() => onShow(site)}
-      actions={
-        <>
-          <a
-            href={site.url}
-            target="_blank"
-            rel="noreferrer noopener"
-            aria-label={`Open ${site.title} in a new tab`}
-            style={ROW_ACTION}
-          >
-            <ExternalLink size={18} aria-hidden="true" />
-          </a>
-          <button
-            type="button"
-            onClick={() => void onRemove(site)}
-            aria-label={`Remove ${site.title} from your history`}
-            style={ROW_ACTION}
-          >
-            <Trash2 size={18} aria-hidden="true" />
-          </button>
-        </>
-      }
-    />
+    <div style={{ marginBottom: 28 }}>
+      <BoardCard
+        face={face}
+        lead={lead}
+        lazy={!lead}
+        meta={
+          <>
+            {site.adult ? <>18+ · </> : null}
+            {site.domain}
+          </>
+        }
+        onOpen={() => onShow(site)}
+        actions={
+          <>
+            <a
+              href={site.url}
+              target="_blank"
+              rel="noreferrer noopener"
+              aria-label={`Open ${site.title} in a new tab`}
+              style={CARD_ACTION}
+            >
+              <ExternalLink size={18} aria-hidden="true" />
+            </a>
+            <button
+              type="button"
+              onClick={() => void onRemove(site)}
+              aria-label={`Remove ${site.title} from your history`}
+              style={CARD_ACTION}
+            >
+              <Trash2 size={18} aria-hidden="true" />
+            </button>
+          </>
+        }
+      />
+    </div>
+  );
+}
+
+/**
+ * A link you typed in.
+ *
+ * Identical to a saved site apart from where it opens. A catalogue site has
+ * been read, classified and checked for whether it can be framed, so the app
+ * can show it in its own viewer. A pasted address has been through none of
+ * that, so it opens in its own tab rather than being dressed up as something
+ * the app vouched for.
+ */
+function ManualCard({
+  entry,
+  onRemove,
+}: {
+  entry: ManualEntry;
+  onRemove: (e: ManualEntry) => void;
+}) {
+  const face: CardFace = {
+    id: entry.id,
+    url: entry.url,
+    domain: entry.domain,
+    title: entry.title,
+    description: null,
+    image: null,
+    adult: false,
+  };
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <BoardCard
+        face={face}
+        lazy
+        meta={<>{entry.domain} · yours only</>}
+        onOpen={() => window.open(entry.url, "_blank", "noopener,noreferrer")}
+        actions={
+          <>
+            <span style={{ flex: "1 1 auto", fontSize: 12.5, color: BOARD_MUTED }}>
+              Kept on this device. Opens in a new tab.
+            </span>
+            <button
+              type="button"
+              onClick={() => onRemove(entry)}
+              aria-label={`Remove ${entry.title} from your history`}
+              style={CARD_ACTION}
+            >
+              <Trash2 size={18} aria-hidden="true" />
+            </button>
+          </>
+        }
+      />
+    </div>
   );
 }
 
@@ -439,6 +668,21 @@ const ROW_MAIN: React.CSSProperties = {
   fontFamily: "Inter, system-ui, sans-serif",
   textAlign: "left",
   cursor: "pointer",
+};
+
+const CARD_ACTION: React.CSSProperties = {
+  display: "inline-flex",
+  flex: "0 0 auto",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 44,
+  height: 44,
+  borderRadius: 999,
+  border: "1px solid rgba(255,255,255,0.14)",
+  background: "transparent",
+  color: BOARD_MUTED,
+  cursor: "pointer",
+  WebkitTapHighlightColor: "transparent",
 };
 
 const ROW_ACTION: React.CSSProperties = {

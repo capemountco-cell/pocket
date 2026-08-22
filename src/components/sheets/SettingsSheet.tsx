@@ -1,6 +1,7 @@
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { THEMES, getCurrentTheme, setTheme, subscribeTheme, type ThemeKey } from "@/lib/theme";
 import { setNavStyle, useNavStyle, type NavStyle } from "@/lib/nav-style";
+import { alwaysShowAdult, setAlwaysShowAdult } from "@/lib/adult-consent";
 import { useEffect, useState } from "react";
 
 // Settings: the accent theme ramp and which of the two bottom-bar
@@ -16,6 +17,14 @@ export function SettingsSheet({
   const navStyle = useNavStyle();
   const [theme, setThemeState] = useState<ThemeKey>(() => getCurrentTheme());
   useEffect(() => subscribeTheme(setThemeState), []);
+
+  // Read on open rather than at first render: this is localStorage, there is
+  // none of it during SSR, and the sheet may have been mounted long before
+  // anyone opened it.
+  const [showAdult, setShowAdult] = useState(false);
+  useEffect(() => {
+    if (open) setShowAdult(alwaysShowAdult());
+  }, [open]);
 
   return (
     <BaseSheet open={open} onOpenChange={onOpenChange} title="Settings" eyebrow="Settings">
@@ -88,6 +97,19 @@ export function SettingsSheet({
         </div>
       </section>
 
+      <section style={{ padding: "18px 20px 4px" }}>
+        <h3 style={GROUP_LABEL}>Sensitive content</h3>
+        <Toggle
+          label="Skip the content warning"
+          hint="Adult sites open straight away, and show their picture on the boards."
+          on={showAdult}
+          onChange={(next) => {
+            setShowAdult(next);
+            setAlwaysShowAdult(next);
+          }}
+        />
+      </section>
+
       <section style={{ padding: "18px 20px 22px" }}>
         <h3 style={GROUP_LABEL}>Bottom bar</h3>
         <div
@@ -110,6 +132,94 @@ export function SettingsSheet({
         </div>
       </section>
     </BaseSheet>
+  );
+}
+
+/**
+ * A setting with two states and a sentence saying what they mean.
+ *
+ * The switch is drawn rather than a checkbox because a checkbox on a black
+ * sheet inherits the platform's own colours, which are not this app's. It is
+ * still a real button with `role="switch"`, so it announces and behaves like
+ * one however it looks.
+ */
+function Toggle({
+  label,
+  hint,
+  on,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  on: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={() => onChange(!on)}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        width: "100%",
+        minHeight: 56,
+        marginTop: 12,
+        padding: 0,
+        border: 0,
+        background: "transparent",
+        color: "var(--app-chrome-fg, #ffffff)",
+        fontFamily: "Inter, system-ui, sans-serif",
+        textAlign: "left",
+        cursor: "pointer",
+        WebkitTapHighlightColor: "transparent",
+      }}
+    >
+      <span style={{ flex: "1 1 auto", minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 16, fontWeight: 600 }}>{label}</span>
+        <span
+          style={{
+            display: "block",
+            marginTop: 2,
+            fontSize: 13,
+            lineHeight: 1.4,
+            color: "var(--app-chrome-muted, #9c9c97)",
+          }}
+        >
+          {hint}
+        </span>
+      </span>
+      <span
+        aria-hidden="true"
+        style={{
+          flex: "0 0 auto",
+          position: "relative",
+          width: 50,
+          height: 30,
+          borderRadius: 999,
+          background: on ? "var(--app-chrome-fg, #ffffff)" : "transparent",
+          border: on
+            ? "1.5px solid var(--app-chrome-fg, #ffffff)"
+            : "1.5px solid var(--app-chrome-border, rgba(255,255,255,0.28))",
+          transition: "background 140ms ease",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            top: 3,
+            left: on ? 23 : 3,
+            width: 21,
+            height: 21,
+            borderRadius: 999,
+            background: on ? "var(--app-chrome-bg, #000000)" : "var(--app-chrome-muted, #9c9c97)",
+            transition: "left 140ms ease",
+          }}
+        />
+      </span>
+    </button>
   );
 }
 
