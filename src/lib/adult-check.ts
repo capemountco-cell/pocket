@@ -154,10 +154,15 @@ const SYSTEM = [
   "checkout, a plan comparison, a buy button, a paid app is true. A donate link",
   "alone is false. Answer only about what is on the page.",
   "",
-  "aboutAuthor: is the main content a person presenting themselves? A CV, a",
-  "portfolio, an about-me, a links page, a personal blog about its author's own",
-  "life or work is true. A blog about a subject is false. A project someone",
-  "made is false -- being proud of a thing is not presenting yourself.",
+  "aboutAuthor: is the page's main content the PERSON, rather than a thing the",
+  "person made? True for a CV, an about-me, a portfolio index listing work for",
+  "hire, a links page, a personal blog about its author's own life or work.",
+  "",
+  "False whenever the main content is a thing you can look at, read or use --",
+  "an article, an essay, a demo, a game, an artwork, a tool -- even when the",
+  "author's name, bio, photo or links appear on the same page. A byline is not",
+  "a bio. A maker's name in the footer is not an about-me. Ask what the page",
+  "is FOR: if it is for showing you the thing, this is false.",
   "",
   "freeToUse: can a visitor use the thing on this page right now, at no cost?",
   "A tool, a game, a map, a generator, a simulator, an archive, a reference, a",
@@ -467,7 +472,14 @@ export const classifyAdult = createServerFn({ method: "POST" })
       if (parsed.adult === undefined || parsed.adult === null) throw new Error("no verdict");
       const score = clamp01(parsed.adult);
       const sells = parsed.sells === true;
-      const aboutAuthor = parsed.aboutAuthor === true;
+      const freeToUse = parsed.freeToUse === true;
+      // A personal page has nothing to use; a project has something to use and
+      // usually a name on it too. That difference is the whole discriminator,
+      // and it is the reason the third question is asked at all: without it,
+      // "aboutAuthor" fired on every article, artwork and toy carrying a
+      // byline -- 23 of 80 real catalogue rows, including a mechanical-watch
+      // explainer and Scale of the Universe.
+      const aboutAuthor = parsed.aboutAuthor === true && !freeToUse;
 
       const named = ["personal", "commerce", "blog"].includes(String(parsed.kind))
         ? (String(parsed.kind) as PricedReason)
