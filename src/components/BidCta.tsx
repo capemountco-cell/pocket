@@ -12,9 +12,22 @@ import { getDeviceId } from "@/lib/device-id";
  * place -- someone who cannot afford the top can walk the figure down and
  * still land somewhere, which is the point of the line beneath it.
  */
-export function BidCta({ board, onPlaced }: { board: BidBoard; onPlaced: () => void }) {
+export function BidCta({
+  board,
+  onPlaced,
+  initialUrl = "",
+}: {
+  board: BidBoard;
+  onPlaced: () => void;
+  /**
+   * Filled in already when someone arrived here from a submission that has to
+   * be paid for. Retyping an address you just typed is the fastest way to lose
+   * the person between the two screens.
+   */
+  initialUrl?: string;
+}) {
   const [cents, setCents] = useState(() => claimTopCents(board));
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(initialUrl);
   const [busy, setBusy] = useState(false);
 
   const rankFor = (amount: number) => {

@@ -25,6 +25,8 @@ export type Bid = {
   image: string | null;
   /** Resolved icon address, or null when the catalogue found none. */
   icon: string | null;
+  /** Adult. Priced rather than refused, and marked wherever it appears. */
+  adult: boolean;
   amountCents: number;
   rank: number;
   placedAt: string | null;
@@ -88,6 +90,7 @@ export async function fetchBidBoard(): Promise<BidBoard> {
     description: typeof b["description"] === "string" ? (b["description"] as string) : null,
     image: typeof b["image"] === "string" ? (b["image"] as string) : null,
     icon: typeof b["favicon_url"] === "string" ? (b["favicon_url"] as string) : null,
+    adult: b["is_adult"] === true,
     amountCents: Number(b["amount_cents"] ?? 0),
     rank: Number(b["rank"] ?? 0),
     placedAt: typeof b["placed_at"] === "string" ? (b["placed_at"] as string) : null,
