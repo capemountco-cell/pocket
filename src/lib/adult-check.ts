@@ -32,11 +32,6 @@ export type AdultVerdict = {
   intent: IntentVerdict;
 };
 
-// Over this, a page reads as somebody's own thing rather than something worth
-// stumbling onto. Same direction as the adult threshold and for the same
-// reason: the expensive mistake is charging a site that owed nothing.
-const INTENT_THRESHOLD = 0.75;
-
 // Over this, a link is priced rather than queued. Set well above a coin flip
 // on purpose: a false positive asks an innocent site for money, which is a
 // far worse failure than an adult site slipping into the queue, where the
@@ -130,68 +125,50 @@ const SYSTEM = [
   // The word "json" in lower case is load-bearing, not a typo for "JSON".
   // response_format: json_object is refused outright unless a message contains
   // it -- OpenAI answers 400 invalid_request_error, param "messages", and
-  // every call this file makes was failing on exactly that. The prompt already
-  // said "JSON" in capitals, which was not enough.
-  "You rate a web page on two independent axes and reply with json only, as a",
-  "single json object:",
-  '{"adult": <0-1>, "own": <0-1>, "kind": "personal"|"commerce"|"blog"|"none", "reason": "<8 words or fewer>"}.',
+  // every call this file makes was failing on exactly that.
+  //
+  // The three questions below replace a 0-1 "how promotional is this" score,
+  // which was asked for three different ways and swung wildly every time --
+  // measured against 80 real catalogue rows on each attempt:
+  //
+  //   "promotes whoever made it"        no shop was ever priced
+  //   category list, 0.9 "no further test"   34 of 80 priced, wrongly
+  //   evidence-first decision procedure      9 of 80, but pricing pages at 0.1
+  //
+  // The last one is the tell. Its reasons read "Pricing page; indicates fees
+  // and sales" beside a 0.1 -- the model could see the fact and could not
+  // place it on the scale. So it is not asked to. It answers what it can see;
+  // the verdict is arithmetic on those answers, in code, where it can be read
+  // and tested rather than re-tuned by rewriting a paragraph.
+  "You look at a web page and reply with json only, as a single json object:",
+  '{"adult": <0-1>, "sells": true|false, "aboutAuthor": true|false,',
+  '"freeToUse": true|false, "kind": "personal"|"commerce"|"blog"|"none",',
+  '"reason": "<8 words or fewer>"}.',
   "",
   "adult: 1 means unambiguously pornographic, 0 means clearly not.",
   "Nudity in art, medicine, sex education, or news reporting is NOT adult: below 0.3.",
   "Dating, lingerie retail, and mature-themed games are NOT adult unless sexually explicit.",
   "",
-  // Two rewrites of this axis, and both failed in opposite directions,
-  // measured against 80 real catalogue rows each time.
-  //
-  // The first said the page "exists to promote whoever made it", which reads
-  // as personal promotion: a national retailer scored 0.15-0.25 and no shop
-  // was ever priced.
-  //
-  // The second listed categories and said each was worth 0.9 "with no further
-  // test". That priced 34 of the 80 -- free tools, wind maps, open-source
-  // downloaders -- and several of the model's own reasons said "not selling"
-  // beside a 0.9. A category list invites pattern-matching on surface, and
-  // almost everything has a landing page.
-  //
-  // So it is a decision procedure now: start at zero, raise only on evidence
-  // that can be pointed at, and name the confusions that actually occurred.
-  "own: whether this page exists to get its owner seen or paid. Start at 0 and",
-  "raise it only on evidence you can point to on the page itself.",
+  "sells: is there anything on this page with a price, for sale, or behind a",
+  "payment or subscription? A pricing page is true. A product page is true. A",
+  "checkout, a plan comparison, a buy button, a paid app is true. A donate link",
+  "alone is false. Answer only about what is on the page.",
   "",
-  "Score own 0.9 or above only if at least one of these is plainly true:",
-  "- something on the page is for sale, has a price, or requires payment or a",
-  "  subscription to use",
-  "- the page's purpose is to introduce a person and their work for hire: a CV,",
-  "  a portfolio, an about-me, a freelance or agency site",
-  "- it is a personal blog, meaning its subject is its author's own life, work",
-  "  or services",
+  "aboutAuthor: is the main content a person presenting themselves? A CV, a",
+  "portfolio, an about-me, a links page, a personal blog about its author's own",
+  "life or work is true. A blog about a subject is false. A project someone",
+  "made is false -- being proud of a thing is not presenting yourself.",
   "",
-  "Score own below 0.2 when the thing on the page is free to use right there.",
-  "A tool, a game, a toy, a map, a visualisation, a generator, a simulator, an",
-  "archive, a reference, a directory, or an essay about a subject is NOT",
-  "promotion -- and none of them become promotion by having a name, a logo, a",
-  "landing page, a product-sounding domain, a donate link, or a byline.",
+  "freeToUse: can a visitor use the thing on this page right now, at no cost?",
+  "A tool, a game, a map, a generator, a simulator, an archive, a reference, a",
+  "directory is true. Ignore the address and the title when answering this: a",
+  "product-sounding domain is not a product.",
   "",
-  "Free software with a homepage is not a shop. A project someone is proud of",
-  "is not a portfolio. If nothing is for sale and the page is not about its",
-  "author, score below 0.2 however polished and branded it looks.",
+  "kind: commerce if sells, personal if aboutAuthor and it is a site about the",
+  'person, blog if aboutAuthor and it is a blog, "none" if neither.',
   "",
-  "Judge the page, never the address or the title. A .app, .tv, .gg, .io or",
-  "any other product-sounding domain is not evidence. A name that sounds like",
-  "a startup is not evidence. If the text does not show a price, a purchase, a",
-  "paywall or a person offering themselves, there is no evidence and the answer",
-  "is below 0.2 -- say so rather than inferring from what the name suggests.",
-  "",
-  "The mirror of that: a page whose main content IS a person introducing",
-  'themselves scores 0.9 even though nothing is for sale. "Hi, I am X, here is',
-  'my work", a CV, an about-me, a links page, a portfolio index -- the product',
-  "being promoted is the person. Do not mark these low for lacking a price.",
-  "",
-  'Set "kind" to commerce when something is for sale, personal when someone is',
-  'presenting themselves, blog for a personal blog, or "none" when own is low.',
-  "",
-  "If the evidence is thin or you are unsure, score below 0.3. Your reason must",
-  'agree with your score: never write "not selling" and score above 0.5.',
+  "Answer each question on its own. They can disagree: a free game made by a",
+  "named person is sells false, aboutAuthor false, freeToUse true.",
 ].join(" ");
 
 /**
@@ -477,7 +454,9 @@ export const classifyAdult = createServerFn({ method: "POST" })
       const content = body.choices?.[0]?.message?.content ?? "{}";
       const parsed = JSON.parse(content) as {
         adult?: unknown;
-        own?: unknown;
+        sells?: unknown;
+        aboutAuthor?: unknown;
+        freeToUse?: unknown;
         kind?: unknown;
         reason?: unknown;
       };
@@ -487,15 +466,25 @@ export const classifyAdult = createServerFn({ method: "POST" })
       // least reports itself honestly as unjudged.
       if (parsed.adult === undefined || parsed.adult === null) throw new Error("no verdict");
       const score = clamp01(parsed.adult);
-      const own = clamp01(parsed.own);
+      const sells = parsed.sells === true;
+      const aboutAuthor = parsed.aboutAuthor === true;
 
-      const kind = ["personal", "commerce", "blog"].includes(String(parsed.kind))
+      const named = ["personal", "commerce", "blog"].includes(String(parsed.kind))
         ? (String(parsed.kind) as PricedReason)
         : null;
+      // The two facts decide it; `kind` only names which one. A page that
+      // sells is commerce whatever label came back with it.
+      const kind: PricedReason | null = sells
+        ? "commerce"
+        : aboutAuthor
+          ? named === "blog"
+            ? "blog"
+            : "personal"
+          : null;
       // Mechanical wins the label when both fire: "shortened" and "on a
       // builder's subdomain" are facts, and a fact explains better than an
       // inference when someone is being asked for money.
-      const judgedPrice = own >= INTENT_THRESHOLD && kind !== null;
+      const judgedPrice = kind !== null;
 
       return {
         adult: score >= ADULT_THRESHOLD,
@@ -505,7 +494,9 @@ export const classifyAdult = createServerFn({ method: "POST" })
         intent: {
           priced: mechanical !== null || judgedPrice,
           reason: mechanical ?? (judgedPrice ? kind : null),
-          score: mechanical ? 1 : own,
+          // Derived, so it still reports a number without pretending the
+          // model produced one: certain when a fact was true, zero otherwise.
+          score: mechanical || judgedPrice ? 1 : 0,
           judged: true,
         },
       };
