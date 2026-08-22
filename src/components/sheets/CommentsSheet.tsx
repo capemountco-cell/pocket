@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Flag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { ICON_REGISTRY } from "@/components/icons";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { SheetButton } from "@/components/ui/sheet-button";
 import { getDeviceId } from "@/lib/device-id";
@@ -17,6 +18,12 @@ import {
 import type { DiscoverySite } from "@/lib/discovery";
 
 const MUTED = "var(--app-chrome-muted, #9c9c97)";
+
+// Your own name, in the colour of the slot this sheet lives behind. Comments
+// are reached through the react icon and that icon is teal, so a comment of
+// yours is teal too -- the thread inherits the colour of the door you came in
+// through rather than inventing a fifth accent for itself.
+const MINE = ICON_REGISTRY.react.accentColor;
 
 /**
  * What people have said about the site currently on screen, and a way to add
@@ -182,7 +189,18 @@ export function CommentsSheet({
         </div>
       }
     >
-      <div style={{ padding: "2px 20px 12px" }}>
+      <div
+        style={{
+          // Fills the scrolling area even when there is almost nothing in it,
+          // so an empty thread can centre its one sentence instead of pinning
+          // it to the top of a tall, otherwise blank sheet.
+          minHeight: "100%",
+          boxSizing: "border-box",
+          display: "flex",
+          flexDirection: "column",
+          padding: "2px 20px 12px",
+        }}
+      >
         {failed ? (
           <Empty text="Couldn't load the comments." />
         ) : comments === null ? (
@@ -216,67 +234,85 @@ function Comment({
   onReport: () => void;
 }) {
   return (
-    <li style={{ padding: "12px 0", borderBottom: "1px solid rgba(128,128,128,0.16)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span
+    // The row is the flex container, not the byline, so the one control on it
+    // centres against the whole comment. Hung off the byline it sat level with
+    // the name and drifted further off centre the longer the remark got.
+    <li
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "12px 0",
+        borderBottom: "1px solid rgba(128,128,128,0.16)",
+      }}
+    >
+      <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+          <span
+            style={{
+              fontSize: 12.5,
+              fontWeight: 700,
+              letterSpacing: "0.03em",
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              // Yours in the sheet's own accent, at full strength; everyone
+              // else's in the same white as the words, held back a little so
+              // the byline never outweighs what was said.
+              color: comment.mine ? MINE : "var(--app-chrome-fg, #ffffff)",
+              opacity: comment.mine ? 1 : 0.75,
+            }}
+          >
+            {comment.mine ? "You" : comment.author}
+          </span>
+          <span style={{ fontSize: 12.5, color: MUTED }}>{ago(comment.createdAt)}</span>
+        </div>
+        <p
           style={{
-            fontSize: 12.5,
-            fontWeight: 700,
-            letterSpacing: "0.03em",
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+            margin: "5px 0 0",
+            fontSize: 15,
+            lineHeight: 1.45,
             color: "var(--app-chrome-fg, #ffffff)",
-            opacity: 0.75,
+            // Someone else's sentence, so it wraps rather than being cut, and
+            // a pasted address cannot push the sheet sideways.
+            overflowWrap: "anywhere",
+            whiteSpace: "pre-wrap",
           }}
         >
-          {comment.mine ? "You" : comment.author}
-        </span>
-        <span style={{ fontSize: 12.5, color: MUTED }}>{ago(comment.createdAt)}</span>
-        <span style={{ flex: "1 1 auto" }} />
-        {/* Yours to delete, everyone else's to report. Never both, so the
-            destructive tap is never next to the one that isn't. */}
-        <button
-          type="button"
-          onClick={comment.mine ? onRemove : onReport}
-          aria-label={comment.mine ? "Delete your comment" : "Report this comment"}
-          style={{
-            appearance: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 32,
-            height: 32,
-            margin: "-6px -6px -6px 0",
-            border: 0,
-            background: "transparent",
-            color: MUTED,
-            cursor: "pointer",
-            WebkitTapHighlightColor: "transparent",
-          }}
-        >
-          {comment.mine ? <Trash2 size={15} /> : <Flag size={15} />}
-        </button>
+          {comment.body}
+        </p>
       </div>
-      <p
+      {/* Yours to delete, everyone else's to report. Never both, so the
+          destructive tap is never next to the one that isn't. */}
+      <button
+        type="button"
+        onClick={comment.mine ? onRemove : onReport}
+        aria-label={comment.mine ? "Delete your comment" : "Report this comment"}
         style={{
-          margin: "5px 0 0",
-          fontSize: 15,
-          lineHeight: 1.45,
-          color: "var(--app-chrome-fg, #ffffff)",
-          // Someone else's sentence, so it wraps rather than being cut, and a
-          // pasted address cannot push the sheet sideways.
-          overflowWrap: "anywhere",
-          whiteSpace: "pre-wrap",
+          appearance: "none",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flex: "0 0 auto",
+          width: 40,
+          height: 40,
+          marginRight: -8,
+          border: 0,
+          background: "transparent",
+          color: MUTED,
+          cursor: "pointer",
+          WebkitTapHighlightColor: "transparent",
         }}
       >
-        {comment.body}
-      </p>
+        {comment.mine ? <Trash2 size={15} /> : <Flag size={15} />}
+      </button>
     </li>
   );
 }
 
 function Empty({ text }: { text: string }) {
+  // Auto margins on both axes inside the flex column above: centred across
+  // the width and down the height of whatever room is going.
   return (
-    <p role="status" style={{ margin: "26px 0", fontSize: 15, color: MUTED, textAlign: "center" }}>
+    <p role="status" style={{ margin: "auto", fontSize: 15, color: MUTED, textAlign: "center" }}>
       {text}
     </p>
   );
