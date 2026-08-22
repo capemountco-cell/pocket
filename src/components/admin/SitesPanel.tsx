@@ -285,7 +285,7 @@ function SiteRow({
         {row.category ? <Chip>{row.category}</Chip> : null}
         {row.is_adult ? <Chip tone="warn">adult</Chip> : null}
         {row.is_promotional ? <Chip tone="warn">promotional</Chip> : null}
-        {row.boosted ? <Chip>boosted</Chip> : null}
+        {row.boosted ? <Chip>bid</Chip> : null}
         {row.embeddable === false ? <Chip tone="warn">no embed</Chip> : null}
       </div>
 

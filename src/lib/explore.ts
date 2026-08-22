@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fetchBidBoard, type Bid, type BidBoard } from "@/lib/bids";
 import { toDiscoverySite, type DiscoverySite } from "@/lib/discovery";
 import type { SiteRow } from "@/integrations/supabase/client";
 
@@ -77,30 +78,31 @@ export function scoreSite(row: Row, now: number): number {
 }
 
 export type ExplorePage = {
-  /** Paid placement. Shown above the list and labelled as bought, never mixed. */
-  boosted: ExploreSite[];
+  /** The auction: paid placement, ranked by what it paid. */
+  board: BidBoard;
   /** Earned placement, ranked by score. */
   top: ExploreSite[];
 };
 
 /**
- * Everything the page shows, in two separate lists.
+ * Everything the page shows: an auction and a ranking.
  *
- * Paid and earned are kept apart on purpose. A boost buys distribution; it
- * does not buy a better record, and quietly sorting bought placement into an
- * editorial "top" would make the number beside every other row meaningless.
- * Boosted sites sit above the list under their own heading, and are removed
- * from the ranking below so nothing appears twice.
+ * The two are computed apart and stay distinguishable in the list. Money buys
+ * a place on the board; it does not buy a better record, and quietly sorting
+ * bought placement into an editorial "top" would make the number beside every
+ * other row mean nothing. A bid is shown with its price attached, which is a
+ * plainer disclosure than any label -- and a site that bought a place is
+ * dropped from the earned ranking so nothing appears twice.
  */
 export async function fetchExplorePage(): Promise<ExplorePage> {
-  const [boosted, top] = await Promise.all([fetchBoosted(), fetchExplore()]);
-  const paidIds = new Set(boosted.map((s) => s.id));
-  return { boosted, top: top.filter((s) => !paidIds.has(s.id)) };
+  const [board, top] = await Promise.all([fetchBidBoard(), fetchExplore()]);
+  const paidIds = new Set(board.bids.map((b) => b.id));
+  return { board, top: top.filter((s) => !paidIds.has(s.id)) };
 }
 
 /** A place on the blended board: an earned entry, or a bought one. */
 export type BoardEntry =
-  { kind: "earned"; rank: number; site: ExploreSite } | { kind: "paid"; site: ExploreSite };
+  { kind: "earned"; rank: number; site: ExploreSite } | { kind: "bid"; bid: Bid };
 
 /**
  * One list, with paid placement slotted into it.
@@ -119,39 +121,25 @@ export type BoardEntry =
 const FIRST_PAID_SLOT = 3;
 const PAID_EVERY = 9;
 
-export function blendBoard({ boosted, top }: ExplorePage): BoardEntry[] {
+export function blendBoard({ board, top }: ExplorePage): BoardEntry[] {
   const out: BoardEntry[] = [];
-  const queue = [...boosted];
+  // Highest bid first, so the money order is the order they appear in.
+  const queue = [...board.bids].sort((a, b) => a.rank - b.rank);
 
   top.forEach((site, i) => {
     out.push({ kind: "earned", rank: i + 1, site });
     const placed = i + 1;
     const due = placed >= FIRST_PAID_SLOT && (placed - FIRST_PAID_SLOT) % PAID_EVERY === 0;
     if (due && queue.length > 0) {
-      const paid = queue.shift();
-      if (paid) out.push({ kind: "paid", site: paid });
+      const bid = queue.shift();
+      if (bid) out.push({ kind: "bid", bid });
     }
   });
 
-  // Anything that never found a slot -- a short board, or more boosts than
+  // Anything that never found a slot -- a short board, or more bids than
   // gaps -- goes at the end rather than being dropped.
-  for (const site of queue) out.push({ kind: "paid", site });
+  for (const bid of queue) out.push({ kind: "bid", bid });
   return out;
-}
-
-/** Sites currently carrying a live boost. */
-async function fetchBoosted(): Promise<ExploreSite[]> {
-  const { data, error } = await supabase
-    .from("sites")
-    .select(COLUMNS)
-    .eq("status", "live")
-    .is("boosted", true)
-    .not("is_adult", "is", true)
-    .order("created_at", { ascending: false })
-    .limit(10);
-  if (error) return [];
-  const now = Date.now();
-  return (data ?? []).map((row) => decorate(row as unknown as SiteRow, row, now));
 }
 
 /**

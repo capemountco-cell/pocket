@@ -10,17 +10,22 @@ type Section = { value: Json } | { failure: string };
  * What people have paid for.
  *
  * Read-only on purpose. The two routines here answer with whatever the
- * dashboard holds -- orders, their tiers, what has been delivered -- and are
- * rendered by walking the response, because their shape is not written down
- * in this repo.
+ * dashboard holds -- orders, what was paid, what has been delivered -- and
+ * are rendered by walking the response, because their shape is not written
+ * down in this repo.
  *
- * Refunding and killing a boost are deliberately not wired. `admin_mark_boost_refunded`
- * exists and takes an order id, but a mis-aimed refund is not a thing to
- * discover afterwards, and nobody has asked for that button yet.
+ * The routines keep their stored names (`admin_boost_dashboard`,
+ * `admin_get_boost_settings`): the rebrand is what a reader is shown, not a
+ * rename of every database object behind it.
+ *
+ * Refunding and killing a bid are deliberately not wired.
+ * `admin_mark_boost_refunded` exists and takes an order id, but a mis-aimed
+ * refund is not a thing to discover afterwards, and nobody has asked for that
+ * button yet.
  */
-export function BoostsPanel({ token }: { token: string }) {
+export function BidsPanel({ token }: { token: string }) {
   const { data, error, loading, reload } = useAsync<{ orders: Section; settings: Section }>(
-    `boosts:${token}`,
+    `bids:${token}`,
     async () => {
       const [orders, settings] = (
         await Promise.allSettled([adminBoostDashboard(token), adminBoostSettings(token)])
@@ -44,7 +49,7 @@ export function BoostsPanel({ token }: { token: string }) {
           <Readout value={data.orders.value} />
         )}
       </Panel>
-      <Panel title="Boost settings">
+      <Panel title="Auction settings">
         {"failure" in data.settings ? (
           <Note text={data.settings.failure} tone="danger" />
         ) : (

@@ -12,7 +12,7 @@ import {
   adminTokenValid,
   describeFailure,
 } from "@/lib/admin";
-import { BoostsPanel } from "@/components/admin/BoostsPanel";
+import { BidsPanel } from "@/components/admin/BidsPanel";
 import { MessagesPanel } from "@/components/admin/MessagesPanel";
 import { OverviewPanel } from "@/components/admin/OverviewPanel";
 import { QueuePanel } from "@/components/admin/QueuePanel";
@@ -31,13 +31,13 @@ export const Route = createFileRoute("/aaravos")({
   component: AdminScreen,
 });
 
-type Tab = "overview" | "queue" | "sites" | "boosts" | "messages";
+type Tab = "overview" | "queue" | "sites" | "bids" | "messages";
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: "overview", label: "Overview" },
   { id: "queue", label: "Queue" },
   { id: "sites", label: "Sites" },
-  { id: "boosts", label: "Boosts" },
+  { id: "bids", label: "Bids" },
   { id: "messages", label: "Messages" },
 ];
 
@@ -192,8 +192,8 @@ function AdminScreen() {
           <QueuePanel token={session.token} />
         ) : tab === "sites" ? (
           <SitesPanel token={session.token} />
-        ) : tab === "boosts" ? (
-          <BoostsPanel token={session.token} />
+        ) : tab === "bids" ? (
+          <BidsPanel token={session.token} />
         ) : (
           <MessagesPanel />
         )}

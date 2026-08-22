@@ -6,7 +6,9 @@ import { useNavStyle } from "@/lib/nav-style";
 import { APP_CONTENT_MAX_WIDTH, navContentReserve } from "@/components/nav/navMetrics";
 import { BottomNav } from "@/components/nav/BottomNav";
 import { blendBoard, fetchExplorePage, type ExploreSite, type ExplorePage } from "@/lib/explore";
-import { BoardPaidTag, BoardRow, BoardStat } from "@/components/BoardRow";
+import { BoardRow, BoardStat } from "@/components/BoardRow";
+import { BidCta } from "@/components/BidCta";
+import { money } from "@/lib/bids";
 import { screenshotFor, type Screenshot } from "@/lib/screenshots";
 import { OPEN_SITE_KEY } from "@/routes/saved";
 
@@ -44,6 +46,8 @@ function ExploreScreen() {
   const navigate = useNavigate();
   const [page, setPage] = useState<ExplorePage | null>(null);
   const [failed, setFailed] = useState(false);
+  const [nonce, setNonce] = useState(0);
+  const reload = () => setNonce((n) => n + 1);
 
   useEffect(() => {
     let live = true;
@@ -53,10 +57,19 @@ function ExploreScreen() {
     return () => {
       live = false;
     };
-  }, []);
+  }, [nonce]);
 
   // Opening from here hands the id to the discovery screen rather than
   // launching a tab: Explore is a way into the app, not out of it.
+  const openId = (id: string) => {
+    try {
+      sessionStorage.setItem(OPEN_SITE_KEY, id);
+    } catch {
+      // A private window with storage denied still gets a random site.
+    }
+    void navigate({ to: "/" });
+  };
+
   const open = (site: ExploreSite) => {
     try {
       sessionStorage.setItem(OPEN_SITE_KEY, site.id);
@@ -107,6 +120,8 @@ function ExploreScreen() {
             padding: "6px 20px 32px",
           }}
         >
+          {page ? <BidCta board={page.board} onPlaced={reload} /> : null}
+
           {failed ? (
             <Note text="Couldn't reach the catalogue." />
           ) : !page ? (
@@ -116,7 +131,18 @@ function ExploreScreen() {
           ) : (
             <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
               {board.map((entry, i) =>
-                entry.kind === "earned" && entry.rank <= 3 ? (
+                entry.kind === "bid" ? (
+                  <li key={"bid-" + entry.bid.id}>
+                    <BoardRow
+                      domain={entry.bid.domain}
+                      title={entry.bid.domain}
+                      description={entry.bid.description ? clamp(entry.bid.description, 90) : null}
+                      lead={"#" + entry.bid.rank}
+                      trailing={<BidAmount cents={entry.bid.amountCents} />}
+                      onOpen={() => openId(entry.bid.id)}
+                    />
+                  </li>
+                ) : entry.rank <= 3 ? (
                   <li key={entry.site.id} style={{ marginBottom: 28, marginTop: i === 0 ? 0 : 8 }}>
                     <Card
                       site={entry.site}
@@ -133,9 +159,9 @@ function ExploreScreen() {
                       description={
                         entry.site.description ? clamp(entry.site.description, 90) : null
                       }
-                      lead={entry.kind === "paid" ? <BoardPaidTag /> : entry.rank}
+                      lead={entry.rank}
                       trailing={
-                        entry.kind === "earned" && entry.site.likes > 0 ? (
+                        entry.site.likes > 0 ? (
                           <BoardStat value={entry.site.likes} unit="likes" />
                         ) : undefined
                       }
@@ -390,6 +416,31 @@ function Eyebrow({ site }: { site: ExploreSite }) {
       }}
     >
       {bits.join(" · ")}
+    </span>
+  );
+}
+
+/**
+ * What a place on the board cost.
+ *
+ * This replaces the old "Ad" chip. A row carrying a visible price is a
+ * stronger disclosure than a label, not a weaker one -- it says the placement
+ * was bought AND what it took, which is also the number anyone wanting that
+ * spot has to beat.
+ */
+function BidAmount({ cents }: { cents: number }) {
+  return (
+    <span
+      style={{
+        fontSize: 14.5,
+        fontWeight: 750,
+        fontVariantNumeric: "tabular-nums",
+        letterSpacing: "-0.01em",
+        color: "var(--app-accent-warm, #E5C800)",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {money(cents)}
     </span>
   );
 }
