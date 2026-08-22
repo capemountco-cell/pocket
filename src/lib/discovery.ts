@@ -24,6 +24,8 @@ export type DiscoverySite = {
   embeddable: boolean;
   /** Live comments on this site, so a row can show the number without asking. */
   commentCount: number;
+  /** Adult. Shown behind a full-screen warning rather than refused. */
+  adult: boolean;
   // Where the site's icon lives, or null when it has none. Null is an answer,
   // not a gap: the icon services reply to a miss with a decodable grey
   // placeholder, which a browser reports as a successful load, so nothing in
@@ -64,6 +66,7 @@ export function toDiscoverySite(row: SiteRow): DiscoverySite {
     // Newer than the checked-in generated types, which that file says not to
     // hand-edit -- read defensively rather than forged in there.
     commentCount: Math.max(0, Number((row as { comment_count?: unknown }).comment_count ?? 0)),
+    adult: row.is_adult === true,
     icon: row.favicon_url ?? null,
   };
 }
@@ -346,6 +349,30 @@ export type SubmitResult =
  * So the function is the only way in now. It writes the row itself, which is
  * why nothing is inserted on this side.
  */
+/**
+ * Add an adult site to the catalogue.
+ *
+ * Its own door, because classify-submission refuses adult links outright and
+ * its deploy pipeline cannot be changed from here. The row lands live and
+ * flagged, which is what puts the full-screen warning in front of it and keeps
+ * it off the earned board -- flagged is not the same as refused.
+ */
+type AdultSubmitRpc = {
+  rpc(
+    fn: "submit_adult_site",
+    args: { p_device_id: string; p_url: string },
+  ): PromiseLike<{ data: unknown; error: { message: string } | null }>;
+};
+
+export async function submitAdultSite(deviceId: string, url: string): Promise<boolean> {
+  const { data, error } = await (supabase as unknown as AdultSubmitRpc).rpc("submit_adult_site", {
+    p_device_id: deviceId,
+    p_url: url,
+  });
+  if (error) return false;
+  return ((data ?? {}) as { ok?: boolean }).ok === true;
+}
+
 export async function submitSite(
   deviceId: string,
   url: string,

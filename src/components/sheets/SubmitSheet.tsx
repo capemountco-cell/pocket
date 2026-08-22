@@ -4,7 +4,7 @@ import { ClipboardPaste } from "lucide-react";
 import { toast } from "sonner";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { SheetButton } from "@/components/ui/sheet-button";
-import { recordEvent, submitSite } from "@/lib/discovery";
+import { recordEvent, submitAdultSite, submitSite } from "@/lib/discovery";
 import { routingCopy, type SubmissionDestination } from "@/lib/submission-routing";
 import { useAuth } from "@/lib/auth";
 import { getDeviceId } from "@/lib/device-id";
@@ -58,13 +58,19 @@ export function SubmitSheet({
     setBusy(true);
     setResult(null);
     try {
-      // Adult links are priced rather than refused, and that has to be settled
-      // before the row is written: classify-submission would reject this one
-      // outright, and its deploy pipeline cannot be changed from here. A link
-      // over the line is carried straight to the auction with its address
-      // already in the field -- nobody should have to type it twice.
+      // Adult links are admitted, not turned away -- classify-submission would
+      // refuse this one outright and its deploy pipeline cannot be changed
+      // from here, so it comes in by its own door. The row lands flagged,
+      // which is what puts a full-screen warning in front of it for anyone who
+      // meets it in the rotation. The auction is then offered rather than
+      // imposed: a bid buys rank, it is not the price of being listed.
       const verdict = await classifyAdult({ data: { url } }).catch(() => null);
       if (verdict?.adult) {
+        const added = await submitAdultSite(deviceId, url);
+        if (!added) {
+          toast("Couldn't add that one just now.");
+          return;
+        }
         recordEvent(deviceId, "submit_success");
         onOpenChange(false);
         void navigate({ to: "/explore", search: { url, priced: true } });

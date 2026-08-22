@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { ContentWarning } from "@/components/ContentWarning";
+import { acknowledgeAdult, hasAcknowledgedAdult } from "@/lib/adult-consent";
 import type { DiscoverySite } from "@/lib/discovery";
 
 // Renders one discovery full-bleed. Two presentation modes, equal in polish:
@@ -15,24 +17,39 @@ const EMBED_TIMEOUT_MS = 8000;
 export function SiteViewer({ site }: { site: DiscoverySite }) {
   const [loaded, setLoaded] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
+  // Starts closed and opens on the client, because the answer lives in
+  // sessionStorage and there is none of that during SSR.
+  const [allowed, setAllowed] = useState(false);
 
   useEffect(() => {
     setLoaded(false);
     setTimedOut(false);
-  }, [site.id]);
+    setAllowed(!site.adult || hasAcknowledgedAdult(site.id));
+  }, [site.id, site.adult]);
 
+  // The embed timeout must not run while the warning is up: nothing has been
+  // asked for yet, so there is nothing that could have timed out.
   useEffect(() => {
-    if (!site.embeddable || loaded) return;
+    if (!allowed || !site.embeddable || loaded) return;
     const t = setTimeout(() => setTimedOut(true), EMBED_TIMEOUT_MS);
     return () => clearTimeout(t);
-  }, [site.id, site.embeddable, loaded]);
+  }, [site.id, site.embeddable, loaded, allowed]);
 
   const showPreview = !site.embeddable || timedOut;
+
+  const reveal = () => {
+    acknowledgeAdult(site.id);
+    setAllowed(true);
+  };
 
   return (
     <div className="app-viewer-outer">
       <div className="app-viewer-frame">
-        {!showPreview ? (
+        {!allowed ? (
+          // Returned instead of the frame, never over it. Nothing of the site
+          // is fetched, rendered or played while this is on screen.
+          <ContentWarning domain={site.domain} onShow={reveal} />
+        ) : !showPreview ? (
           <>
             {!loaded && <div className="app-screen-glow" aria-hidden="true" />}
             <iframe
