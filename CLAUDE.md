@@ -4,6 +4,31 @@ Standing rules for any agent working here. They exist because each one below
 was learned the hard way on this project — every "verify" rule is here because
 something confidently reported the wrong answer.
 
+## 0. Do not wait to be told twice
+
+**The owner's standing instruction: never wait on them. Move on everything.**
+
+A thing you have raised is a thing to go and do. Do not end a turn holding an
+offer, a recommendation, or a "say the word and I will" — say what you found,
+then do it. This covers the follow-ups you name yourself: a defect you spotted
+while fixing something else, the calibration pass you said the work needed, the
+tidy-up you flagged and moved past. It covers publishing (§3). Where a request
+reads two ways, take the reading that does more, do it, and say which one you
+took and why.
+
+**The stop word is "undo".** They can say it at any time, and it means: stop
+moving on things, hold what is unfinished, and wait. It is theirs to use, not a
+gate to seek — asking "shall I?" to be safe is the behaviour this section
+exists to end. Until they say it, keep going.
+
+Two things this does not license, because neither is what they asked for.
+It is not permission to skip §1: work still gets verified against the thing
+itself, and an unverified claim is still worth less than an honest "could not
+check". And it is not permission to narrow their brief — where you think a
+piece of their spec is wrong, build it as specified, then say so with the
+evidence. Scaling the work down is their call; scaling your own hesitation
+down is the point of this rule.
+
 ## 1. Verify claims against primary sources, always
 
 Never report a thing as done, applied, merged, or deployed because a tool
