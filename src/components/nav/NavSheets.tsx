@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { MenuSheet } from "@/components/sheets/MenuSheet";
 import { ReactionSheet } from "@/components/sheets/ReactionSheet";
+import { CommentsSheet } from "@/components/sheets/CommentsSheet";
 import { SendToSheet } from "@/components/sheets/SendToSheet";
 import { SubmitSheet } from "@/components/sheets/SubmitSheet";
 import { InboxSheet } from "@/components/sheets/InboxSheet";
@@ -25,7 +27,7 @@ export function NavSheets({
   isSaved,
 }: {
   activeSheet: SheetKey | null;
-  openFromSheet: (sheet: SheetKey, kind: EventKind) => void;
+  openFromSheet: (sheet: SheetKey, kind: EventKind, siteId?: string) => void;
   closeSheet: () => void;
   onReacted: (kind: ReactionKind) => void;
   site: DiscoverySite | undefined;
@@ -35,6 +37,13 @@ export function NavSheets({
   // Who is signed in, read once here and handed to the sheets that show it,
   // so two sheets can never disagree about it.
   const auth = useAuth();
+
+  // The count on the reaction row comes from the site row, which was fetched
+  // before any of this happened. Rather than refetch the site to move one
+  // number, the difference this session made is held here and added on. It
+  // resets with the site, so it can never be carried onto the next one.
+  const [added, setAdded] = useState(0);
+  useEffect(() => setAdded(0), [site?.id]);
 
   // The collection is a route now, so opening it records the event without
   // switching sheets -- the sheet closes itself and navigates.
@@ -69,7 +78,14 @@ export function NavSheets({
         {...bind("reaction")}
         onReacted={onReacted}
         site={site}
+        onOpenComments={() => openFromSheet("comments", "comments_open", site?.id)}
+        commentCount={Math.max(0, (site?.commentCount ?? 0) + added)}
         {...(site && prefs.reactions[site.id] ? { current: prefs.reactions[site.id] } : {})}
+      />
+      <CommentsSheet
+        {...bind("comments")}
+        site={site}
+        onChanged={(delta) => setAdded((n) => n + delta)}
       />
       <SendToSheet {...bind("send-to")} site={site} />
       <InboxSheet {...bind("inbox")} userId={auth.user?.id} />
