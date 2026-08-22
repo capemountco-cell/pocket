@@ -43,8 +43,12 @@ const ADULT_THRESHOLD = 0.8;
 const DEFAULT_MODEL = "gpt-5-nano";
 
 const FETCH_TIMEOUT_MS = 6000;
-const MAX_PAGE_BYTES = 120_000;
-const SNIPPET_CHARS = 900;
+// Stripe's pricing page is 971 KB and Allbirds' product page is 1.4 MB. At
+// 120 KB neither one's body was reached at all -- the slice was head, inline
+// styles and scripts -- so the model was shown boilerplate and answered,
+// correctly, that it could see no evidence of a price.
+const MAX_PAGE_BYTES = 400_000;
+const SNIPPET_CHARS = 2000;
 
 const PROBE_UA =
   "Mozilla/5.0 (compatible; PocketBot/1.0; +https://p-o-c-k-e-t.com) AppleWebKit/537.36";
@@ -77,9 +81,46 @@ function env(...names: string[]): string | undefined {
  * context. A title, a description and a little visible text cost one request
  * and decide most cases on their own.
  */
-async function readPage(
-  url: string,
-): Promise<{ title: string; description: string; text: string }> {
+type Page = { title: string; description: string; text: string; signals: string };
+
+/**
+ * Facts about the whole document, not just the part that fits in a snippet.
+ *
+ * A price is the single most decisive thing on a commercial page and it is
+ * almost never in the first two thousand characters of one: it is below a
+ * hero, a nav and a cookie banner, or inside structured data. These are found
+ * by looking, reported as observations, and left for the model to weigh --
+ * "pricing" in a footer link is not a shop, and a regex cannot tell the
+ * difference. Structured data can: an ld+json Product with an offer is about
+ * as close to proof as a page gets.
+ */
+function signalsIn(raw: string): string {
+  const found: string[] = [];
+  const prices = raw.match(
+    /(?:[$£€]\s?\d[\d,]*(?:\.\d{2})?|\b\d[\d,]*(?:\.\d{2})?\s?(?:USD|EUR|GBP)\b)/g,
+  );
+  if (prices && prices.length > 0) {
+    found.push(
+      `${prices.length} price-like amount${prices.length === 1 ? "" : "s"} (${prices.slice(0, 3).join(", ")})`,
+    );
+  }
+  if (/add to (?:cart|bag|basket)|buy now|checkout|proceed to pay/i.test(raw)) {
+    found.push("a cart or checkout control");
+  }
+  if (/per month|per year|\/mo\b|billed (?:annually|monthly)|free trial|subscribe now/i.test(raw)) {
+    found.push("subscription wording");
+  }
+  if (/"@type"\s*:\s*"(?:Product|Offer|AggregateOffer)"|"offers"\s*:/i.test(raw)) {
+    found.push("structured data describing a product with an offer");
+  }
+  const ogType = raw.match(
+    /<meta[^>]+property=["']og:type["'][^>]+content=["']([^"']{1,40})["']/i,
+  )?.[1];
+  if (ogType) found.push(`og:type is ${ogType}`);
+  return found.join("; ");
+}
+
+async function readPage(url: string): Promise<Page> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
@@ -93,18 +134,29 @@ async function readPage(
     const description =
       raw.match(/<meta[^>]+name=["']description["'][^>]+content=["']([\s\S]{0,400}?)["']/i)?.[1] ??
       "";
-    const text = raw
+    // From inside the body, so the snippet is the page rather than its head --
+    // and past the opening tag's own attributes, which otherwise arrive as
+    // `body class="..."` at the front of every snippet.
+    const opens = /<body[^>]*>/i.exec(raw);
+    const body = opens ? raw.slice(opens.index + opens[0].length) : "";
+    const text = (body || raw)
       .replace(/<script[\s\S]*?<\/script>/gi, " ")
       .replace(/<style[\s\S]*?<\/style>/gi, " ")
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
       .trim()
       .slice(0, SNIPPET_CHARS);
-    return { title: decode(title), description: decode(description), text };
+    return {
+      title: decode(title),
+      description: decode(description),
+      text,
+      signals: signalsIn(raw),
+    };
   } catch {
     // An unreachable page is judged on its address alone. Thin, but the model
-    // still catches the obvious cases and the threshold protects the rest.
-    return { title: "", description: "", text: "" };
+    // still catches the obvious cases, and a page it cannot read is a page it
+    // reports no evidence about rather than one it guesses at.
+    return { title: "", description: "", text: "", signals: "" };
   } finally {
     clearTimeout(timer);
   }
@@ -152,11 +204,21 @@ const SYSTEM = [
   "sells: is there anything on this page with a price, for sale, or behind a",
   "payment or subscription? A pricing page is true. A product page is true. A",
   "checkout, a plan comparison, a buy button, a paid app is true. A donate link",
-  "alone is false. Answer only about what is on the page.",
+  "alone is false.",
+  "",
+  "The text you are given is only the start of the page. The line beginning",
+  '"Found elsewhere" reports what was seen in the rest of it, and is evidence',
+  "about the whole document: structured data describing a product with an",
+  "offer, or a cart control, means sells is true even when the visible text",
+  "above says nothing about buying. Price-like amounts alone are weaker -- a",
+  "page can quote a figure without selling anything.",
   "",
   "aboutAuthor: is the page's main content the PERSON, rather than a thing the",
   "person made? True for a CV, an about-me, a portfolio index listing work for",
   "hire, a links page, a personal blog about its author's own life or work.",
+  "",
+  "An og:type of article means the page is a piece of writing, and a piece of",
+  "writing is a thing rather than a person: that points to false.",
   "",
   "False whenever the main content is a thing you can look at, read or use --",
   "an article, an essay, a demo, a game, an artwork, a tool -- even when the",
@@ -184,7 +246,7 @@ const SYSTEM = [
  * spent five rounds failing on a difference between the two, and the way that
  * does not happen again is that there is only one.
  */
-function classifyRequest(url: string, page: { title: string; description: string; text: string }) {
+function classifyRequest(url: string, page: Page) {
   const model = env("POCKET_OPENAI_MODEL", "OPENAI_ADULT_MODEL") ?? DEFAULT_MODEL;
   return {
     model,
@@ -197,6 +259,7 @@ function classifyRequest(url: string, page: { title: string; description: string
           `Title: ${page.title || "(none)"}`,
           `Description: ${page.description || "(none)"}`,
           `Text: ${page.text || "(none)"}`,
+          `Found elsewhere on the page: ${page.signals || "(nothing notable)"}`,
         ].join("\n"),
       },
     ],
