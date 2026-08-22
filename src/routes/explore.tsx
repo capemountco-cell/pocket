@@ -103,9 +103,25 @@ function ExploreScreen() {
     };
   }, [nonce]);
 
+  // How many pages reading on will add before the pager takes over.
+  //
+  // Both behaviours were asked for and they pull against each other: the
+  // pager sits at the end of the list, and appending to that list pushes it
+  // further away every time someone gets near it. Uncapped, it can only be
+  // reached after all ten pages have loaded, which makes it decoration.
+  //
+  // Three automatic appends is four hundred entries -- far more than anyone
+  // scrolls by accident -- and then the list stops growing and the pager is
+  // right there, where it was asked to be.
+  const AUTO_PAGES = 3;
+
   const total = state ? pageCount(state.depth) : 1;
   const last = state?.slices.at(-1)?.page ?? 0;
   const more = state !== null && last + 1 < total;
+  // Counted from the run's own start, so jumping to page 7 gets its own three
+  // rather than inheriting whatever the previous run had spent.
+  const from = state?.slices[0]?.page ?? 0;
+  const autoMore = more && last - from < AUTO_PAGES;
 
   /** Appends the next hundred. Guarded so a fast scroll cannot double-fetch. */
   const loadMore = useCallback(() => {
@@ -139,7 +155,7 @@ function ExploreScreen() {
   useEffect(() => {
     const mark = tail.current;
     const root = scroller.current;
-    if (!mark || !root || !more) return;
+    if (!mark || !root || !autoMore) return;
     const io = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) loadMore();
@@ -148,7 +164,7 @@ function ExploreScreen() {
     );
     io.observe(mark);
     return () => io.disconnect();
-  }, [more, loadMore]);
+  }, [autoMore, loadMore]);
 
   // Which page the reader is actually looking at, so the pager marks it.
   // Measured from the blocks themselves rather than from a scroll offset,
@@ -272,11 +288,6 @@ function ExploreScreen() {
             <Note text="Nothing to feature yet." />
           ) : (
             <>
-              {/* Above the board rather than below it. A pager under an
-                  infinite list keeps walking away from the reader as the list
-                  grows; here it stays put, says where you are, and jumps. */}
-              <Pager total={total} current={current} depth={state.depth} onGo={goTo} />
-
               {state.slices.map((slice) => (
                 <div key={slice.page} data-page={slice.page}>
                   {slice.page > 0 ? <Marker page={slice.page} depth={state.depth} /> : null}
@@ -302,6 +313,14 @@ function ExploreScreen() {
                   That's the whole board.
                 </p>
               )}
+
+              {/* In the footer, under the board. It was above it, which put
+                  ten page numbers between the bid form and the thing they
+                  number -- chrome ahead of content, on the one screen where
+                  the content is the argument. Down here it is where a pager
+                  is normally looked for, and reading on still walks the board
+                  forward without anyone having to find it. */}
+              <Pager total={total} current={current} depth={state.depth} onGo={goTo} />
             </>
           )}
         </div>
@@ -462,7 +481,7 @@ function Pager({
   return (
     <nav
       aria-label="Board pages"
-      style={{ margin: "4px 0 18px", borderTop: HAIRLINE, paddingTop: 14 }}
+      style={{ margin: "22px 0 4px", borderTop: HAIRLINE, paddingTop: 16 }}
     >
       <div
         style={{
