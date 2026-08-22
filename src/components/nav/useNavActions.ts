@@ -99,6 +99,7 @@ export function useNavActions(props: BottomNavProps) {
         onDiscover();
       },
       reactActive: site ? prefs.reactions[site.id] === "like" : false,
+      siteActionsDisabled: !site,
       isSaved: site ? prefs.savedIds.includes(site.id) : false,
     }),
     [open, onDiscover, onSlotTap, prefs, site],

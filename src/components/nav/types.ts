@@ -16,6 +16,12 @@ export type NavSlots = {
   onSubmitTap: () => void;
   /** The current site carries a reaction from this device. */
   reactActive: boolean;
+  /**
+   * No site on screen, so the slots that act on one have nothing to act on.
+   * True on Explore and the collection, which have their own content and
+   * never hand the bar a site.
+   */
+  siteActionsDisabled: boolean;
   /** The current site is in this device's collection. */
   isSaved: boolean;
 };

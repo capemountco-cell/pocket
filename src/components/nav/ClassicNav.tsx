@@ -22,8 +22,16 @@ const SURFACE = "var(--app-chrome-bg, #ffffff)";
 export function ClassicNav(props: NavStyleProps) {
   const { slots, glowMenu, menuUnread, glowSubmit, logoRef, navRef, logoSpinKey, logoPulseKey } =
     props;
-  const { onMenuTap, onReactTap, onDiscoverTap, onSendToTap, onSubmitTap, isSaved, reactActive } =
-    slots;
+  const {
+    onMenuTap,
+    onReactTap,
+    onDiscoverTap,
+    onSendToTap,
+    onSubmitTap,
+    isSaved,
+    reactActive,
+    siteActionsDisabled,
+  } = slots;
 
   const setLogoRefs = useBrandMarkMotion({ spinKey: logoSpinKey, pulseKey: logoPulseKey }, logoRef);
 
@@ -81,7 +89,13 @@ export function ClassicNav(props: NavStyleProps) {
           </span>
         </NavButton>
 
-        <NavButton label="React" ink={INK} onClick={onReactTap} active={reactActive}>
+        <NavButton
+          label="React"
+          ink={INK}
+          onClick={onReactTap}
+          active={reactActive}
+          disabled={siteActionsDisabled}
+        >
           <ReactIcon size={NAV_ICON_SIZE} state={reactActive ? "active" : "idle"} />
         </NavButton>
 
@@ -105,7 +119,13 @@ export function ClassicNav(props: NavStyleProps) {
           <BrandMark size={44} logoRef={setLogoRefs} />
         </button>
 
-        <NavButton label="Send to" ink={INK} onClick={onSendToTap} active={isSaved}>
+        <NavButton
+          label="Send to"
+          ink={INK}
+          onClick={onSendToTap}
+          active={isSaved}
+          disabled={siteActionsDisabled}
+        >
           <SendToIcon size={NAV_ICON_SIZE} state={isSaved ? "active" : "idle"} />
         </NavButton>
 

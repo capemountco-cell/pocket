@@ -10,6 +10,7 @@ export function NavButton({
   label,
   onClick,
   active,
+  disabled,
   ink,
   fontSize = 16,
 }: {
@@ -17,6 +18,8 @@ export function NavButton({
   label: string;
   onClick: () => void;
   active?: boolean | undefined;
+  /** Nothing for this slot to act on. Dimmed and inert, never removed. */
+  disabled?: boolean | undefined;
   ink: string;
   fontSize?: number | undefined;
 }) {
@@ -24,11 +27,15 @@ export function NavButton({
 
   return (
     <motion.button
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      aria-disabled={disabled || undefined}
       // Spread rather than pass `undefined`: this project compiles with
       // exactOptionalPropertyTypes, which rejects an explicit undefined for
       // an optional prop. Omitting the keys entirely is the same behavior.
-      {...(reduceMotion ? {} : { whileTap: { scale: 0.88 }, whileHover: { scale: 1.05 } })}
+      {...(reduceMotion || disabled
+        ? {}
+        : { whileTap: { scale: 0.88 }, whileHover: { scale: 1.05 } })}
       transition={{ type: "spring", stiffness: 500, damping: 28 }}
       aria-label={label}
       aria-pressed={active ? true : undefined}
@@ -44,7 +51,11 @@ export function NavButton({
         color: ink,
         fontFamily: "Inter, system-ui, sans-serif",
         fontSize,
-        cursor: "pointer",
+        cursor: disabled ? "default" : "pointer",
+        // Dimmed rather than hidden. The bar is five fixed meanings in fixed
+        // places and muscle memory is the point of that, so a slot with
+        // nothing to act on goes quiet where it stands.
+        opacity: disabled ? 0.34 : 1,
         padding: "0 5px",
         WebkitTapHighlightColor: "transparent",
       }}

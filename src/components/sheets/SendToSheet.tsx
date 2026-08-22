@@ -58,9 +58,15 @@ export function SendToSheet({
   };
 
   return (
-    <BaseSheet open={open} onOpenChange={onOpenChange} title="Send this site to" eyebrow="Send to">
-      <SheetRow icon={<Copy size={ICON} />} label="Copy link" onClick={copyLink} />
-      <SheetRow icon={<Share2 size={ICON} />} label="Share" onClick={share} />
+    <BaseSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Send this site to"
+      eyebrow="Send to"
+      {...(site ? {} : { description: "Open a site first — there's nothing here to send." })}
+    >
+      <SheetRow icon={<Copy size={ICON} />} label="Copy link" onClick={copyLink} disabled={!site} />
+      <SheetRow icon={<Share2 size={ICON} />} label="Share" onClick={share} disabled={!site} />
       {/* Not built, and honestly labelled as such. Sending a site to another
           person needs somewhere to put it -- a shares table, and a way to
           find the person -- and neither exists in this database yet. */}
