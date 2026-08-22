@@ -143,7 +143,7 @@ function DeckMessage({
       : status === "error"
         ? {
             title: "Couldn't reach the feed",
-            body: "The connection didn't answer. Your reactions and saved sites are safe.",
+            body: "The connection didn't answer. Your reactions and history are safe.",
             action: { label: "Try again", run: onRetry },
           }
         : status === "empty"
