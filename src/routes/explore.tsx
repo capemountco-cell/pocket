@@ -842,11 +842,11 @@ function PricedNote() {
       }}
     >
       <p style={{ margin: 0, fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.01em" }}>
-        This one needs a bid.
+        It's in. Want a place on the board?
       </p>
       <p style={{ margin: "5px 0 0", fontSize: 13.5, lineHeight: 1.45, color: MUTED }}>
-        Adult sites don't go into the free queue, but they can hold a place on the board like
-        anything else. Your address is filled in below — name your price.
+        Adult sites are shown behind a content warning, and they don't appear in the ranking below —
+        but they can hold a bought place like anything else. Your address is filled in.
       </p>
     </div>
   );
