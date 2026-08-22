@@ -209,5 +209,6 @@ function decorate(row: Record<string, unknown>): ExploreSite {
     tags: Array.isArray(tags) ? tags.filter((t): t is string => Boolean(t)).slice(0, 3) : [],
     likes: Math.max(0, Number(row["like_count"] ?? 0)),
     score: Number(row["score"] ?? 0),
+    adult: row["is_adult"] === true,
   };
 }

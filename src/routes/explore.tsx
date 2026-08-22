@@ -22,12 +22,8 @@ import { OPEN_SITE_KEY } from "@/routes/saved";
 export const Route = createFileRoute("/explore")({
   // Arriving from a submission that has to be paid for: the address comes with
   // the person so the form is already filled when they get here.
-  validateSearch: (search: Record<string, unknown>): { url?: string; priced?: boolean } => ({
-    ...(typeof search["url"] === "string" && search["url"].length <= 2048
-      ? { url: search["url"] }
-      : {}),
-    ...(search["priced"] === true || search["priced"] === "true" ? { priced: true } : {}),
-  }),
+  validateSearch: (search: Record<string, unknown>): { url?: string } =>
+    typeof search["url"] === "string" && search["url"].length <= 2048 ? { url: search["url"] } : {},
   head: () => ({
     meta: [
       { title: `Explore — ${APP_NAME}` },
@@ -67,7 +63,7 @@ export const Route = createFileRoute("/explore")({
 function ExploreScreen() {
   const navStyle = useNavStyle();
   const navigate = useNavigate();
-  const { url: handedUrl, priced } = Route.useSearch();
+  const { url: handedUrl } = Route.useSearch();
   const [state, setState] = useState<ExploreBoard | null>(null);
   const [failed, setFailed] = useState(false);
   const [nonce, setNonce] = useState(0);
@@ -251,7 +247,6 @@ function ExploreScreen() {
             padding: "6px 20px 32px",
           }}
         >
-          {priced ? <PricedNote /> : null}
           {state ? (
             <BidCta board={state.board} onPlaced={reload} initialUrl={handedUrl ?? ""} />
           ) : null}
@@ -333,12 +328,14 @@ function Position({
           lead={entry.rank === 1}
           meta={
             <>
+              {/* First, not last: the eyebrow is one nowrap line with an
+                  ellipsis, and anything on the end of it can be cut off. */}
+              {face.adult ? <>18+ · </> : null}
               {face.domain}
               {paid ? (
                 <>
                   {" · "}
                   <span style={{ color: BID_ACCENT }}>{money(entry.bid.amountCents)}</span>
-                  {face.adult ? <> · 18+</> : null}
                 </>
               ) : (
                 earnedMeta(entry.site.likes, entry.site.tags[0])
@@ -360,14 +357,14 @@ function Position({
         description={face.description ? clamp(face.description, 90) : null}
         lead={entry.rank}
         trailing={
-          paid ? (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
-              {face.adult ? <AdultTag /> : null}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+            {face.adult ? <AdultTag /> : null}
+            {paid ? (
               <BidAmount cents={entry.bid.amountCents} />
-            </span>
-          ) : entry.site.likes > 0 ? (
-            <BoardStat value={entry.site.likes} unit="likes" />
-          ) : undefined
+            ) : entry.site.likes > 0 ? (
+              <BoardStat value={entry.site.likes} unit="likes" />
+            ) : null}
+          </span>
         }
         onOpen={() => onOpen(face.id)}
       />
@@ -400,7 +397,7 @@ function faceOf(entry: BoardEntry): Face {
       description: s.description,
       image: s.image,
       icon: s.icon,
-      adult: false,
+      adult: s.adult,
     };
   }
   const b = entry.bid;
@@ -633,6 +630,15 @@ function Shot({ face, rank }: { face: Face; rank: number }) {
     setShot(null);
     setSrc(null);
     setSettled(false);
+    // An adult entry ranks like anything else, but its picture is not put on
+    // a public leaderboard uninvited -- a screenshot IS the site, and seeing
+    // it is exactly what the content warning exists to be asked for. So the
+    // capture is never requested and the frame stays covered; tapping the
+    // card opens the site, where that warning is.
+    if (face.adult) {
+      setSettled(true);
+      return;
+    }
     screenshotFor(face.url)
       .then((next) => {
         if (!live) return;
@@ -646,7 +652,7 @@ function Shot({ face, rank }: { face: Face; rank: number }) {
     return () => {
       live = false;
     };
-  }, [face.url, face.image]);
+  }, [face.url, face.image, face.adult]);
 
   // One step down the chain per failure, never a loop: resized capture, then
   // the stored original, then og_image, then an honest empty frame.
@@ -697,6 +703,27 @@ function Shot({ face, rank }: { face: Face; rank: number }) {
       >
         {face.domain}
       </span>
+
+      {face.adult ? (
+        <span
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            background:
+              "radial-gradient(120% 90% at 50% 30%, #3a2a30 0%, #241c22 50%, #141014 100%)",
+          }}
+        >
+          <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: "0.04em" }}>18+</span>
+          <span style={{ fontSize: 13, color: "rgba(255,255,255,0.55)" }}>
+            Tap to open, with a warning first
+          </span>
+        </span>
+      ) : null}
 
       <span
         aria-hidden="true"
@@ -819,36 +846,6 @@ function BidAmount({ cents }: { cents: number }) {
     >
       {money(cents)}
     </span>
-  );
-}
-
-/**
- * Why this address is here rather than in the queue.
- *
- * Said plainly and without euphemism. Someone who submitted a link and got
- * moved to an auction is owed the reason, and a vague "this one goes to the
- * board" reads as a system malfunctioning rather than a rule being applied.
- */
-function PricedNote() {
-  return (
-    <div
-      role="status"
-      style={{
-        margin: "2px 0 18px",
-        padding: "13px 15px",
-        borderRadius: 14,
-        border: `1px solid ${BID_ACCENT}44`,
-        background: `${BID_ACCENT}12`,
-      }}
-    >
-      <p style={{ margin: 0, fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.01em" }}>
-        It's in. Want a place on the board?
-      </p>
-      <p style={{ margin: "5px 0 0", fontSize: 13.5, lineHeight: 1.45, color: MUTED }}>
-        Adult sites are shown behind a content warning, and they don't appear in the ranking below —
-        but they can hold a bought place like anything else. Your address is filled in.
-      </p>
-    </div>
   );
 }
 

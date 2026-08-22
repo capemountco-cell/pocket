@@ -58,12 +58,12 @@ export function SubmitSheet({
     setBusy(true);
     setResult(null);
     try {
-      // Adult links are admitted, not turned away -- classify-submission would
-      // refuse this one outright and its deploy pipeline cannot be changed
-      // from here, so it comes in by its own door. The row lands flagged,
-      // which is what puts a full-screen warning in front of it for anyone who
-      // meets it in the rotation. The auction is then offered rather than
-      // imposed: a bid buys rank, it is not the price of being listed.
+      // Adult links come in by their own door only because
+      // classify-submission refuses them outright and its deploy pipeline
+      // cannot be changed from here. Nothing else about them is special: the
+      // row lands live and flagged, it competes for rank on the same score as
+      // everything else, and the flag buys it a content warning rather than a
+      // lesser tier. So the outcome shown is the ordinary one.
       const verdict = await classifyAdult({ data: { url } }).catch(() => null);
       if (verdict?.adult) {
         const added = await submitAdultSite(deviceId, url);
@@ -72,8 +72,7 @@ export function SubmitSheet({
           return;
         }
         recordEvent(deviceId, "submit_success");
-        onOpenChange(false);
-        void navigate({ to: "/explore", search: { url, priced: true } });
+        setResult("stumble");
         return;
       }
 
