@@ -171,11 +171,21 @@ export type AiProbe = {
   /**
    * OpenAI's own error code -- "invalid_api_key", "model_not_found",
    * "insufficient_quota" -- or a label for a request that never reached them.
-   *
-   * The code and never the message: OpenAI echoes a masked form of the key
-   * back inside the message of a 401, and a masked secret is still a secret.
    */
   code: string;
+  /**
+   * OpenAI's explanation, on everything except a 401.
+   *
+   * The exception is the whole reason this field is separate from the code. A
+   * 401 body reads "Incorrect API key provided: sk-abc...xyz" -- a masked
+   * secret is still a secret, so that one case returns nothing. Every other
+   * status describes a parameter rather than a credential, and a code alone
+   * ("invalid_request_error") does not say which parameter, which is exactly
+   * what this had to be extended to find out.
+   */
+  detail: string;
+  /** The parameter OpenAI objected to, when it named one. */
+  param: string;
   /**
    * Answered, with nothing in it. Worth its own field because it is what a
    * reasoning model does when the token budget is too small to leave room for
@@ -248,13 +258,17 @@ async function probeModel(key: string, model: string): Promise<AiProbe> {
 
     if (!response.ok) {
       const body = (await response.json().catch(() => null)) as {
-        error?: { code?: unknown; type?: unknown };
+        error?: { code?: unknown; type?: unknown; message?: unknown; param?: unknown };
       } | null;
       const code = body?.error?.code ?? body?.error?.type;
+      const message = body?.error?.message;
       return {
         ok: false,
         status: response.status,
         code: typeof code === "string" ? code : "unknown",
+        // Withheld on a 401 and only on a 401. See the field's own note.
+        detail: response.status !== 401 && typeof message === "string" ? message.slice(0, 300) : "",
+        param: typeof body?.error?.param === "string" ? body.error.param : "",
         empty: false,
       };
     }
@@ -267,6 +281,8 @@ async function probeModel(key: string, model: string): Promise<AiProbe> {
       ok: content.length > 0,
       status: response.status,
       code: content.length > 0 ? "" : (body.choices?.[0]?.finish_reason ?? "empty"),
+      detail: "",
+      param: "",
       empty: content.length === 0,
     };
   } catch (error) {
@@ -276,6 +292,8 @@ async function probeModel(key: string, model: string): Promise<AiProbe> {
       ok: false,
       status: 0,
       code: error instanceof Error ? error.name : "unreachable",
+      detail: "",
+      param: "",
       empty: false,
     };
   }
