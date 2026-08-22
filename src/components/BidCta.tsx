@@ -166,28 +166,39 @@ export function BidCta({
         >
           {busy ? "Opening checkout…" : board.bids.length === 0 ? "Place the first bid" : "Outbid"}
         </button>
-        {/* Centred and small. It is a footnote to the button above it, not a
-            second instruction, so it reads as an aside rather than competing
-            with the thing it qualifies. Shortened to fit one line: the old
-            wording ran 62 characters and folded onto two, and a two-line
-            footnote under a button reads as a warning. */}
-        <p
-          style={{
-            margin: "9px auto 0",
-            fontSize: 11.5,
-            lineHeight: 1.4,
-            color: FAINT,
-            textAlign: "center",
-            // One line at 390px, which is the size this is designed for. Not
-            // nowrap: on a narrower phone a clipped sentence is worse than a
-            // wrapped one, so it is allowed to fold rather than vanish.
-            letterSpacing: "-0.005em",
-          }}
-        >
-          Already listed? Re-enter your URL to keep your place.
-        </p>
       </div>
     </section>
+  );
+}
+
+/**
+ * The footnote that used to sit under the bid button.
+ *
+ * Moved to the foot of the page on the owner's instruction: show it in the
+ * footer, not above the fold. It answers a question nobody has yet when they
+ * are looking at the button -- what happens to a site already on the board --
+ * and it is exactly the question someone has after reading the board and
+ * finding themselves on it.
+ *
+ * Small, centred and faint. It is an aside, not a second instruction.
+ */
+export function BidNote() {
+  return (
+    <p
+      style={{
+        margin: "18px auto 0",
+        fontSize: 11.5,
+        lineHeight: 1.4,
+        color: FAINT,
+        textAlign: "center",
+        // One line at 390px, which is the size this is designed for. Not
+        // nowrap: on a narrower phone a clipped sentence is worse than a
+        // wrapped one, so it is allowed to fold rather than vanish.
+        letterSpacing: "-0.005em",
+      }}
+    >
+      Already listed? Re-enter your URL to keep your place.
+    </p>
   );
 }
 
@@ -216,9 +227,12 @@ function Step({
         width: 34,
         height: 34,
         borderRadius: 999,
-        border: 0,
-        background: "rgba(255,255,255,0.10)",
-        color: disabled ? "rgba(255,255,255,0.28)" : "#ffffff",
+        // A 10% fill on black is barely a shape, and the glyph inside it was
+        // the only thing saying a control was there at all. The border is what
+        // draws the button; the fill only separates it from the ground.
+        border: `1px solid ${disabled ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.34)"}`,
+        background: "rgba(255,255,255,0.06)",
+        color: disabled ? "rgba(255,255,255,0.34)" : "#ffffff",
         fontSize: 19,
         fontWeight: 700,
         lineHeight: 1,

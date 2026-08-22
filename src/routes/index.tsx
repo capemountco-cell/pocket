@@ -7,7 +7,7 @@ import { initNavStyle, useNavStyle } from "@/lib/nav-style";
 import { initSitePrefs } from "@/lib/site-prefs";
 import { NAV_SLOT_EVENT, recordEvent } from "@/lib/discovery";
 import { useDiscoveryDeck, type DeckStatus } from "@/lib/use-discovery-deck";
-import { OPEN_SITE_KEY } from "@/routes/saved";
+import { OPEN_SITE_KEY } from "@/lib/open-site";
 import { navContentReserve } from "@/components/nav/navMetrics";
 import { BottomNav } from "@/components/nav/BottomNav";
 import { SiteViewer } from "@/components/SiteViewer";

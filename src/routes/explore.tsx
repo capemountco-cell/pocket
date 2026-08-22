@@ -15,10 +15,10 @@ import {
 } from "@/lib/explore";
 import { BoardRow, BoardStat } from "@/components/BoardRow";
 import { BoardCard, type CardFace } from "@/components/BoardCard";
-import { BidCta, BID_ACCENT } from "@/components/BidCta";
+import { BidCta, BidNote, BID_ACCENT } from "@/components/BidCta";
 import { money } from "@/lib/bids";
 import { pricedCopy, type PricedReason } from "@/lib/submission-gate";
-import { OPEN_SITE_KEY } from "@/routes/saved";
+import { OPEN_SITE_KEY } from "@/lib/open-site";
 import { clampText as clamp } from "@/lib/utils";
 
 const PRICED_REASONS: PricedReason[] = ["shortener", "hosted", "personal", "commerce", "blog"];
@@ -322,6 +322,7 @@ function ExploreScreen() {
                   is normally looked for, and reading on still walks the board
                   forward without anyone having to find it. */}
               <Pager total={total} current={current} depth={state.depth} onGo={goTo} />
+              <BidNote />
             </>
           )}
         </div>
