@@ -53,6 +53,7 @@ export function MenuSheet({
       open={open}
       onOpenChange={onOpenChange}
       title={`${APP_NAME} menu`}
+      hideTitle
       header={<AccountRow auth={auth} onOpenAuth={onOpenAuth} />}
       footer={
         signedIn ? (
@@ -141,35 +142,12 @@ function AccountRow({ auth, onOpenAuth }: { auth: AuthState; onOpenAuth: () => v
     "Guest";
 
   return (
+    // Name first, picture last. Every row under this one starts at the same
+    // left edge, and an avatar in front of the name was the one thing indenting
+    // past it -- so the column now reads straight down and the face sits out on
+    // the right where it is decoration rather than a false first column.
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <span
-        aria-hidden="true"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 46,
-          height: 46,
-          borderRadius: 999,
-          background: "var(--app-chrome-avatar, #1f1f1f)",
-          color: "var(--app-chrome-muted, #9c9c97)",
-          overflow: "hidden",
-          flex: "0 0 auto",
-        }}
-      >
-        {auth.profile?.avatar_url ? (
-          <img
-            src={auth.profile.avatar_url}
-            alt=""
-            width={46}
-            height={46}
-            style={{ width: 46, height: 46, objectFit: "cover" }}
-          />
-        ) : (
-          <User size={22} />
-        )}
-      </span>
-      <span style={{ minWidth: 0 }}>
+      <span style={{ flex: "1 1 auto", minWidth: 0 }}>
         <span
           style={{
             display: "block",
@@ -212,6 +190,34 @@ function AccountRow({ auth, onOpenAuth }: { auth: AuthState; onOpenAuth: () => v
           >
             Create an account
           </button>
+        )}
+      </span>
+
+      <span
+        aria-hidden="true"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 46,
+          height: 46,
+          borderRadius: 999,
+          background: "var(--app-chrome-avatar, #1f1f1f)",
+          color: "var(--app-chrome-muted, #9c9c97)",
+          overflow: "hidden",
+          flex: "0 0 auto",
+        }}
+      >
+        {auth.profile?.avatar_url ? (
+          <img
+            src={auth.profile.avatar_url}
+            alt=""
+            width={46}
+            height={46}
+            style={{ width: 46, height: 46, objectFit: "cover" }}
+          />
+        ) : (
+          <User size={22} />
         )}
       </span>
     </div>
