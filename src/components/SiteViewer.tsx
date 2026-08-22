@@ -7,6 +7,8 @@ import {
   hasAcknowledgedAdult,
 } from "@/lib/adult-consent";
 import { embedFor } from "@/lib/embeds";
+import { RewindButton } from "@/components/RewindButton";
+import { useIdleReveal } from "@/lib/use-idle-reveal";
 import type { DiscoverySite } from "@/lib/discovery";
 
 // Renders one discovery full-bleed. Two presentation modes, equal in polish:
@@ -20,7 +22,19 @@ import type { DiscoverySite } from "@/lib/discovery";
 // until the submission pipeline can check liveness server-side.
 const EMBED_TIMEOUT_MS = 8000;
 
-export function SiteViewer({ site }: { site: DiscoverySite }) {
+// How long the screen has to stay quiet before the way back offers itself.
+const REWIND_IDLE_MS = 3000;
+
+export function SiteViewer({
+  site,
+  onRewind,
+  canRewind = false,
+}: {
+  site: DiscoverySite;
+  /** Step back to the previous site. Omitted where there is no trail. */
+  onRewind?: (() => void) | undefined;
+  canRewind?: boolean | undefined;
+}) {
   const [loaded, setLoaded] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
   // Starts closed and opens on the client, because both answers live in
@@ -56,6 +70,10 @@ export function SiteViewer({ site }: { site: DiscoverySite }) {
 
   const showPreview = !framable || timedOut;
 
+  // Re-armed on every new site, so arriving somewhere never starts with chrome
+  // already sitting on it.
+  const idle = useIdleReveal(REWIND_IDLE_MS, site.id, canRewind && Boolean(onRewind));
+
   const reveal = () => {
     acknowledgeAdult(site.id);
     setAllowed(true);
@@ -87,6 +105,9 @@ export function SiteViewer({ site }: { site: DiscoverySite }) {
           <PreviewCard site={site} unreachable={timedOut} />
         )}
       </div>
+      {/* Outside the frame element, inside the same box: it overlays the site
+          without being inside the part that gets replaced when one loads. */}
+      {onRewind && canRewind ? <RewindButton visible={idle} onRewind={onRewind} /> : null}
     </div>
   );
 }

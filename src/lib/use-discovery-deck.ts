@@ -23,6 +23,11 @@ const REFILL_AT = 3;
 // from growing without bound over a long sitting.
 const RECENT_CAP = 150;
 
+// How far back the rewind can walk. Sites already served this session, held as
+// whole rows rather than ids so stepping back costs nothing and asks nothing.
+// Fifty is far more than anyone reaches for and still a few tens of kilobytes.
+const TRAIL_CAP = 50;
+
 export type DeckStatus = "loading" | "ready" | "empty" | "error" | "unconfigured";
 
 /**
@@ -53,6 +58,13 @@ export function useDiscoveryDeck(deviceId: string | null, requestedSiteId?: stri
   // each of these, but not in time to help the request already in flight.
   const shown = useRef<string[]>([]);
   const shownSet = useRef<Set<string>>(new Set());
+  // The same serves again, in order and in full, plus where in them the reader
+  // currently is. Separate from `shown` because that one is a filter -- it is
+  // trimmed against the server's memory and holds ids only -- while this is a
+  // path you can walk in both directions.
+  const trail = useRef<DiscoverySite[]>([]);
+  const cursor = useRef(-1);
+  const [canRewind, setCanRewind] = useState(false);
   // A refill in flight must not be started twice by two quick taps.
   const filling = useRef(false);
   // A tap that arrives mid-refill still needs a site when that refill lands.
@@ -72,6 +84,10 @@ export function useDiscoveryDeck(deviceId: string | null, requestedSiteId?: stri
 
   const serve = useCallback((id: string, next: DiscoverySite) => {
     remember(next.id);
+    trail.current.push(next);
+    if (trail.current.length > TRAIL_CAP) trail.current.shift();
+    cursor.current = trail.current.length - 1;
+    setCanRewind(cursor.current > 0);
     setSite(next);
     // Fire-and-forget: a serve that fails to record must not block the screen.
     // It costs nothing here either, because `shown` has already caught it.
@@ -158,9 +174,38 @@ export function useDiscoveryDeck(deviceId: string | null, requestedSiteId?: stri
     void refill(deviceId, { serveNext: true });
   }, [deviceId, refill, serve, requestedSiteId]);
 
+  /**
+   * One step back along the trail.
+   *
+   * Nothing is fetched and nothing is recorded: this site has been served
+   * already, the server knows it, and telling it twice would be a lie about
+   * what happened as well as a wasted request.
+   */
+  const rewind = useCallback(() => {
+    if (cursor.current <= 0) return;
+    cursor.current -= 1;
+    const previous = trail.current[cursor.current];
+    if (!previous) return;
+    setSite(previous);
+    setStatus("ready");
+    setCanRewind(cursor.current > 0);
+  }, []);
+
   /** Advance to the next site. */
   const discover = useCallback(() => {
     if (!deviceId) return;
+    // Rewound, so forward means back up the trail rather than into the queue.
+    // Otherwise going back one and forward one would burn a site.
+    if (cursor.current < trail.current.length - 1) {
+      cursor.current += 1;
+      const ahead = trail.current[cursor.current];
+      if (ahead) {
+        setSite(ahead);
+        setStatus("ready");
+        setCanRewind(cursor.current > 0);
+        return;
+      }
+    }
     const next = queue.current.shift();
     if (next) {
       serve(deviceId, next);
@@ -188,6 +233,9 @@ export function useDiscoveryDeck(deviceId: string | null, requestedSiteId?: stri
       queue.current = [];
       shown.current = [];
       shownSet.current = new Set();
+      trail.current = [];
+      cursor.current = -1;
+      setCanRewind(false);
       await refill(deviceId, { serveNext: true });
     } catch {
       setStatus("error");
@@ -201,5 +249,5 @@ export function useDiscoveryDeck(deviceId: string | null, requestedSiteId?: stri
     void refill(deviceId, { serveNext: true });
   }, [deviceId, refill]);
 
-  return { site, status, discover, showSite, restart, retry };
+  return { site, status, discover, rewind, canRewind, showSite, restart, retry };
 }
