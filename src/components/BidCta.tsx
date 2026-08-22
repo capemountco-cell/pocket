@@ -146,12 +146,22 @@ export function BidCta({ board, onPlaced }: { board: BidBoard; onPlaced: () => v
         >
           {busy ? "Opening checkout…" : board.bids.length === 0 ? "Place the first bid" : "Outbid"}
         </button>
-        {/* Measured to sit on one line at both widths this app supports: 211px
-            against 346px of column at 390, and against 276px at the 320 floor.
-            No nowrap -- if the font ever falls back to something wider, a wrap
-            is better than an overflow. */}
-        <p style={{ margin: "10px 2px 0", fontSize: 13, lineHeight: 1.45, color: FAINT }}>
-          Already listed? Same URL raises it.
+        {/* Centred, to sit with the subline above the field rather than hang
+            left under the button. This wording runs 62 characters against a
+            column that holds about 50, so it takes two lines -- balanced
+            rather than left-ragged, which is what centring is for. */}
+        <p
+          style={{
+            margin: "10px auto 0",
+            maxWidth: 330,
+            fontSize: 13,
+            lineHeight: 1.45,
+            color: FAINT,
+            textAlign: "center",
+            textWrap: "balance",
+          }}
+        >
+          Already listed? Enter your URL again to maintain your position.
         </p>
       </div>
     </section>
