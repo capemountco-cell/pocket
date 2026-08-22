@@ -101,6 +101,7 @@ export function useNavActions(props: BottomNavProps) {
       reactActive: site ? prefs.reactions[site.id] === "like" : false,
       siteActionsDisabled: !site,
       isSaved: site ? prefs.savedIds.includes(site.id) : false,
+      commentCount: site?.commentCount ?? 0,
     }),
     [open, onDiscover, onSlotTap, prefs, site],
   );

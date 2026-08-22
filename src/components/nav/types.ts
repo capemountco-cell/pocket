@@ -24,6 +24,16 @@ export type NavSlots = {
   siteActionsDisabled: boolean;
   /** The current site is in this device's collection. */
   isSaved: boolean;
+  /**
+   * How many comments the site on screen has.
+   *
+   * Chrome, not behaviour -- the react slot does the same thing either way.
+   * It is here rather than in NavChromeProps because it is a fact about the
+   * site, and both bar styles need it for the same reason: comments live two
+   * taps in, behind a sheet called "Your reaction", so from the site itself
+   * there was no sign anyone had said anything.
+   */
+  commentCount: number;
 };
 
 // Chrome-only decoration: glow pulses, the unread dot, and the refs the page
