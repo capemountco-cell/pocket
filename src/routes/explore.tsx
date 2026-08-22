@@ -16,14 +16,26 @@ import {
 import { BoardRow, BoardStat } from "@/components/BoardRow";
 import { BidCta, BID_ACCENT } from "@/components/BidCta";
 import { money } from "@/lib/bids";
+import { pricedCopy, type PricedReason } from "@/lib/submission-gate";
 import { screenshotFor, type Screenshot } from "@/lib/screenshots";
 import { OPEN_SITE_KEY } from "@/routes/saved";
+
+const PRICED_REASONS: PricedReason[] = ["shortener", "hosted", "personal", "commerce", "blog"];
 
 export const Route = createFileRoute("/explore")({
   // Arriving from a submission that has to be paid for: the address comes with
   // the person so the form is already filled when they get here.
-  validateSearch: (search: Record<string, unknown>): { url?: string } =>
-    typeof search["url"] === "string" && search["url"].length <= 2048 ? { url: search["url"] } : {},
+  validateSearch: (search: Record<string, unknown>): { url?: string; why?: PricedReason } => {
+    const why = search["why"];
+    return {
+      ...(typeof search["url"] === "string" && search["url"].length <= 2048
+        ? { url: search["url"] }
+        : {}),
+      ...(typeof why === "string" && PRICED_REASONS.includes(why as PricedReason)
+        ? { why: why as PricedReason }
+        : {}),
+    };
+  },
   head: () => ({
     meta: [
       { title: `Explore — ${APP_NAME}` },
@@ -63,7 +75,7 @@ export const Route = createFileRoute("/explore")({
 function ExploreScreen() {
   const navStyle = useNavStyle();
   const navigate = useNavigate();
-  const { url: handedUrl } = Route.useSearch();
+  const { url: handedUrl, why } = Route.useSearch();
   const [state, setState] = useState<ExploreBoard | null>(null);
   const [failed, setFailed] = useState(false);
   const [nonce, setNonce] = useState(0);
@@ -247,6 +259,7 @@ function ExploreScreen() {
             padding: "6px 20px 32px",
           }}
         >
+          {why ? <PricedNote reason={why} /> : null}
           {state ? (
             <BidCta board={state.board} onPlaced={reload} initialUrl={handedUrl ?? ""} />
           ) : null}
@@ -846,6 +859,37 @@ function BidAmount({ cents }: { cents: number }) {
     >
       {money(cents)}
     </span>
+  );
+}
+
+/**
+ * Why this address arrived here instead of going into the queue.
+ *
+ * Named rather than vague. Someone who submitted a link and was moved to an
+ * auction is owed the actual reason -- a general "this one goes to the board"
+ * reads as the system misfiring rather than a rule being applied, and gives
+ * them nothing to disagree with.
+ */
+function PricedNote({ reason }: { reason: PricedReason }) {
+  const copy = pricedCopy(reason);
+  return (
+    <div
+      role="status"
+      style={{
+        margin: "2px 0 18px",
+        padding: "13px 15px",
+        borderRadius: 14,
+        border: `1px solid ${BID_ACCENT}44`,
+        background: `${BID_ACCENT}12`,
+      }}
+    >
+      <p style={{ margin: 0, fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.01em" }}>
+        {copy.title}
+      </p>
+      <p style={{ margin: "5px 0 0", fontSize: 13.5, lineHeight: 1.45, color: MUTED }}>
+        {copy.detail}
+      </p>
+    </div>
   );
 }
 

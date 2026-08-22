@@ -65,6 +65,16 @@ export function SubmitSheet({
       // everything else, and the flag buys it a content warning rather than a
       // lesser tier. So the outcome shown is the ordinary one.
       const verdict = await classifyAdult({ data: { url } }).catch(() => null);
+
+      // Priced before adult, because a link can be both and the auction is
+      // where both of them end up -- but only this branch keeps it out of the
+      // free catalogue, so it has to be the one that runs.
+      if (verdict?.intent.priced && verdict.intent.reason) {
+        onOpenChange(false);
+        void navigate({ to: "/explore", search: { url, why: verdict.intent.reason } });
+        return;
+      }
+
       if (verdict?.adult) {
         const added = await submitAdultSite(deviceId, url);
         if (!added.ok) {

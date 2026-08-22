@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { mechanicalReason, type IntentVerdict, type PricedReason } from "@/lib/submission-gate";
 
 /**
  * Is this link adult, and how sure are we?
@@ -27,7 +28,14 @@ export type AdultVerdict = {
   reason: string;
   /** False when no key was configured and the fallback decided this. */
   judged: boolean;
+  /** Whether this link buys its place rather than being given one. */
+  intent: IntentVerdict;
 };
+
+// Over this, a page reads as somebody's own thing rather than something worth
+// stumbling onto. Same direction as the adult threshold and for the same
+// reason: the expensive mistake is charging a site that owed nothing.
+const INTENT_THRESHOLD = 0.75;
 
 // Over this, a link is priced rather than queued. Set well above a coin flip
 // on purpose: a false positive asks an innocent site for money, which is a
@@ -119,13 +127,33 @@ function decode(value: string): string {
 }
 
 const SYSTEM = [
-  "You rate whether a web page is adult (pornographic or sexually explicit) content.",
-  'Answer with JSON only: {"score": <number 0-1>, "reason": "<8 words or fewer>"}.',
-  "score 1 means unambiguously pornographic. score 0 means clearly not.",
-  "Nudity in art, medicine, sex education, or news reporting is NOT adult: score below 0.3.",
+  "You rate a web page on two independent axes and answer with JSON only:",
+  '{"adult": <0-1>, "own": <0-1>, "kind": "personal"|"commerce"|"blog"|"none", "reason": "<8 words or fewer>"}.',
+  "",
+  "adult: 1 means unambiguously pornographic, 0 means clearly not.",
+  "Nudity in art, medicine, sex education, or news reporting is NOT adult: below 0.3.",
   "Dating, lingerie retail, and mature-themed games are NOT adult unless sexually explicit.",
-  "If the evidence is thin or you are unsure, score below 0.5.",
+  "",
+  "own: how strongly this page exists to promote whoever made it.",
+  "1 means a personal homepage, portfolio, CV, freelance or agency site, a shop or",
+  "product landing page, or a personal blog -- something its owner submits to be seen.",
+  "0 means something worth stumbling onto regardless of who made it: a toy, a game,",
+  "a visualisation, a tool, an archive, a reference, an essay on a subject rather than",
+  'on its author. Set "kind" to which of personal, commerce or blog applies, or "none".',
+  "",
+  "A hobby project, demo or experiment is NOT self-promotion even on a personal domain:",
+  "score own below 0.3. A blog ABOUT a subject is not a personal blog; a blog about its",
+  "author's life, work or services is. If the evidence is thin or you are unsure, score",
+  "both below 0.5.",
 ].join(" ");
+
+const NOT_PRICED = {
+  intent: { priced: false, reason: null, score: 0, judged: false },
+} satisfies { intent: IntentVerdict };
+
+function clamp01(value: unknown): number {
+  return Math.max(0, Math.min(1, Number(value ?? 0)));
+}
 
 /** The obvious cases, for when no key is configured. Deliberately narrow. */
 function fallbackScore(url: string, page: { title: string; description: string }): number {
@@ -170,11 +198,15 @@ export const classifyAdult = createServerFn({ method: "POST" })
     try {
       target = new URL(data.url);
     } catch {
-      return { adult: false, score: 0, reason: "", judged: false };
+      return { adult: false, score: 0, reason: "", judged: false, ...NOT_PRICED };
     }
     if (target.protocol !== "http:" && target.protocol !== "https:") {
-      return { adult: false, score: 0, reason: "", judged: false };
+      return { adult: false, score: 0, reason: "", judged: false, ...NOT_PRICED };
     }
+
+    // Decided from the address alone, before anything is fetched. A shortener
+    // cannot be read at all, and a builder subdomain does not need reading.
+    const mechanical = mechanicalReason(target.toString());
 
     const page = await readPage(target.toString());
     const key = env("POCKET_OPENAI_API_KEY", "OPENAI_API_KEY");
@@ -186,6 +218,15 @@ export const classifyAdult = createServerFn({ method: "POST" })
         score,
         reason: score > 0 ? "Adult content" : "",
         judged: false,
+        // The mechanical half still holds without a model. The judged half
+        // fails open: with nothing to read the page with, a link gets the
+        // free door rather than an invoice it may not owe.
+        intent: {
+          priced: mechanical !== null,
+          reason: mechanical,
+          score: mechanical ? 1 : 0,
+          judged: false,
+        },
       };
     }
 
@@ -220,14 +261,35 @@ export const classifyAdult = createServerFn({ method: "POST" })
         choices?: Array<{ message?: { content?: string } }>;
       };
       const content = body.choices?.[0]?.message?.content ?? "{}";
-      const parsed = JSON.parse(content) as { score?: unknown; reason?: unknown };
-      const score = Math.max(0, Math.min(1, Number(parsed.score ?? 0)));
+      const parsed = JSON.parse(content) as {
+        adult?: unknown;
+        own?: unknown;
+        kind?: unknown;
+        reason?: unknown;
+      };
+      const score = clamp01(parsed.adult);
+      const own = clamp01(parsed.own);
       if (!Number.isFinite(score)) throw new Error("no score");
+
+      const kind = ["personal", "commerce", "blog"].includes(String(parsed.kind))
+        ? (String(parsed.kind) as PricedReason)
+        : null;
+      // Mechanical wins the label when both fire: "shortened" and "on a
+      // builder's subdomain" are facts, and a fact explains better than an
+      // inference when someone is being asked for money.
+      const judgedPrice = own >= INTENT_THRESHOLD && kind !== null;
+
       return {
         adult: score >= ADULT_THRESHOLD,
         score,
         reason: typeof parsed.reason === "string" ? parsed.reason.slice(0, 80) : "",
         judged: true,
+        intent: {
+          priced: mechanical !== null || judgedPrice,
+          reason: mechanical ?? (judgedPrice ? kind : null),
+          score: mechanical ? 1 : own,
+          judged: true,
+        },
       };
     } catch {
       // A model that will not answer must not become a gate that refuses
@@ -239,6 +301,12 @@ export const classifyAdult = createServerFn({ method: "POST" })
         score,
         reason: score > 0 ? "Adult content" : "",
         judged: false,
+        intent: {
+          priced: mechanical !== null,
+          reason: mechanical,
+          score: mechanical ? 1 : 0,
+          judged: false,
+        },
       };
     }
   });
