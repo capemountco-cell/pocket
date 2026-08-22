@@ -22,9 +22,14 @@ export type RoutingCopy = {
  * has a different home, not a failure -- that framing is deliberate and
  * carried over from the original.
  *
- * `reader`, `learn` and `tv` are surfaces this app does not have. The row is
- * still written with that destination, so the copy says the link was accepted
- * and filed rather than naming a place a person cannot go and look.
+ * `reader`, `learn` and `tv` name what the classifier thinks a link IS. They
+ * are not a holding pen, and they used to read like one: "Added, but not to
+ * the queue... filed separately" described a site that had been set aside,
+ * when the row had in fact gone live and was already in the rotation. Nothing
+ * is held for review -- sites.status defaults to 'live', and of 966
+ * submissions over ninety days, 965 went live and none were pending -- so a
+ * message implying otherwise was telling people to wait for something that
+ * had already happened.
  *
  * `none` is the one genuinely negative outcome -- malware, spam, illegal --
  * and it stays vague on purpose. Explaining exactly which rule caught a link
@@ -42,8 +47,8 @@ export function routingCopy(destination: SubmissionDestination | undefined): Rou
     case "learn":
     case "tv":
       return {
-        title: "Added, but not to the queue.",
-        detail: "It didn't fit the full-screen format, so it's filed separately.",
+        title: "It's in.",
+        detail: "People will land on it as they go.",
         tone: "positive",
       };
     case "boost_only":
