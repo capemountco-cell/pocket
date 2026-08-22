@@ -107,7 +107,7 @@ export function BidCta({ board, onPlaced }: { board: BidBoard; onPlaced: () => v
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck={false}
-          aria-label="The address you want on the board"
+          aria-label="The URL you want on the board"
           placeholder="yoursite.com"
           style={{
             width: "100%",
@@ -146,12 +146,12 @@ export function BidCta({ board, onPlaced }: { board: BidBoard; onPlaced: () => v
         >
           {busy ? "Opening checkout…" : board.bids.length === 0 ? "Place the first bid" : "Outbid"}
         </button>
-        {/* Measured to sit on one line at both widths this app supports: 252px
+        {/* Measured to sit on one line at both widths this app supports: 211px
             against 346px of column at 390, and against 276px at the 320 floor.
             No nowrap -- if the font ever falls back to something wider, a wrap
             is better than an overflow. */}
         <p style={{ margin: "10px 2px 0", fontSize: 13, lineHeight: 1.45, color: FAINT }}>
-          Already listed? Same address raises it.
+          Already listed? Same URL raises it.
         </p>
       </div>
     </section>
