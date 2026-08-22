@@ -127,13 +127,17 @@ export function BaseSheet({
             maxHeight: `calc(100dvh - ${bottomOffset} - 24px)`,
             ...(height ? { height } : {}),
             paddingBottom: 8,
-            // Closed on all four sides. This sheet does not sit on the bottom
-            // of the screen -- it stops where the bar begins -- so its lower
-            // edge is as visible as its upper one. Left open, the footer bled
-            // into the black behind it with nothing to say where the sheet
-            // ended, which is most obvious with a keyboard up and the whole
-            // sheet raised clear of the bar.
-            borderRadius: 22,
+            // Closed on all four sides, curved on two.
+            //
+            // This sheet does not sit on the bottom of the screen -- it stops
+            // where the bar begins -- so its lower edge is as visible as its
+            // upper one. Left open, the footer bled into the black behind it
+            // with nothing to say where the sheet ended, which is most obvious
+            // with a keyboard up and the whole sheet raised clear of the bar.
+            // The border is what closes that edge; the radius was never doing
+            // that work, and rounding the bottom corners cut two wedges out of
+            // the sheet that the site behind showed through.
+            borderRadius: "22px 22px 0 0",
             // Same chrome tokens as the bottom bar, so a themed sheet and a
             // themed bar can never look like two different apps.
             background: "var(--app-chrome-bg, #000000)",
