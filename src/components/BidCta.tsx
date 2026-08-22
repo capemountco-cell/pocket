@@ -71,7 +71,9 @@ export function BidCta({ board, onPlaced }: { board: BidBoard; onPlaced: () => v
           <Step label="Lower the bid" onClick={() => step(-1)} disabled={cents <= board.minCents}>
             −
           </Step>
-          <span style={{ color: ACCENT, fontVariantNumeric: "tabular-nums" }}>{money(cents)}</span>
+          <span style={{ color: BID_ACCENT, fontVariantNumeric: "tabular-nums" }}>
+            {money(cents)}
+          </span>
           <Step label="Raise the bid" onClick={() => step(1)}>
             +
           </Step>
@@ -88,8 +90,9 @@ export function BidCta({ board, onPlaced }: { board: BidBoard; onPlaced: () => v
           color: MUTED,
         }}
       >
-        <span style={{ color: ACCENT }}>New spots start at {money(board.minCents)}.</span> Paying
-        less than the top price still puts you on the board, at whatever place that bid can take.
+        <span style={{ color: BID_ACCENT }}>New spots start at {money(board.minCents)}.</span>{" "}
+        Paying less than the top price still puts you on the board, at whatever place that bid can
+        take.
       </p>
 
       <div style={{ marginTop: 18 }}>
@@ -131,8 +134,8 @@ export function BidCta({ board, onPlaced }: { board: BidBoard; onPlaced: () => v
             minHeight: 54,
             borderRadius: 14,
             border: 0,
-            background: url.trim().length === 0 ? "rgba(255,255,255,0.14)" : ACCENT,
-            color: url.trim().length === 0 ? "rgba(255,255,255,0.5)" : "#140b08",
+            background: url.trim().length === 0 ? "rgba(255,255,255,0.14)" : BID_ACCENT,
+            color: url.trim().length === 0 ? "rgba(255,255,255,0.5)" : BID_INK,
             fontFamily: "Inter, system-ui, sans-serif",
             fontSize: 17,
             fontWeight: 750,
@@ -191,6 +194,22 @@ function Step({
   );
 }
 
-const ACCENT = "var(--app-accent-warm, #E5C800)";
+/**
+ * The auction's colour.
+ *
+ * Its own token rather than the shared warm accent, because it means
+ * something different: that accent marks a caution -- a submission held back,
+ * a neutral outcome -- and this marks the action the page is asking for. On
+ * black the two also read almost identically at a glance, which is the worst
+ * case for a colour whose whole job is to say "this one".
+ *
+ * Exported because the amounts on the board are the same fact as the price in
+ * the headline, and a bid shown in one colour here and another there stops
+ * looking like the same thing.
+ */
+export const BID_ACCENT = "#4ADE80";
+/** Ink for text sitting on BID_ACCENT. Near-black, tinted so it isn't a hole. */
+export const BID_INK = "#05140b";
+
 const MUTED = "rgba(255,255,255,0.62)";
 const FAINT = "rgba(255,255,255,0.40)";

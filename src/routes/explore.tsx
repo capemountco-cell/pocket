@@ -7,7 +7,7 @@ import { APP_CONTENT_MAX_WIDTH, navContentReserve } from "@/components/nav/navMe
 import { BottomNav } from "@/components/nav/BottomNav";
 import { blendBoard, fetchExplorePage, type ExploreSite, type ExplorePage } from "@/lib/explore";
 import { BoardRow, BoardStat } from "@/components/BoardRow";
-import { BidCta } from "@/components/BidCta";
+import { BidCta, BID_ACCENT } from "@/components/BidCta";
 import { money } from "@/lib/bids";
 import { screenshotFor, type Screenshot } from "@/lib/screenshots";
 import { OPEN_SITE_KEY } from "@/routes/saved";
@@ -436,7 +436,7 @@ function BidAmount({ cents }: { cents: number }) {
         fontWeight: 750,
         fontVariantNumeric: "tabular-nums",
         letterSpacing: "-0.01em",
-        color: "var(--app-accent-warm, #E5C800)",
+        color: BID_ACCENT,
         whiteSpace: "nowrap",
       }}
     >
