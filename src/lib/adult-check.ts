@@ -153,6 +153,37 @@ const SYSTEM = [
   "both below 0.5.",
 ].join(" ");
 
+/**
+ * The exact request the classifier makes.
+ *
+ * Shared with the diagnostic below rather than reimplemented there. A
+ * diagnostic that builds a lookalike request tests the lookalike: this file
+ * spent five rounds failing on a difference between the two, and the way that
+ * does not happen again is that there is only one.
+ */
+function classifyRequest(url: string, page: { title: string; description: string; text: string }) {
+  return {
+    model: env("POCKET_OPENAI_MODEL", "OPENAI_ADULT_MODEL") ?? DEFAULT_MODEL,
+    messages: [
+      { role: "system", content: SYSTEM },
+      {
+        role: "user",
+        content: [
+          `URL: ${url}`,
+          `Title: ${page.title || "(none)"}`,
+          `Description: ${page.description || "(none)"}`,
+          `Text: ${page.text || "(none)"}`,
+        ].join("\n"),
+      },
+    ],
+    response_format: { type: "json_object" },
+    // Generous on purpose. A reasoning model spends this budget thinking
+    // before it writes anything, so a tight cap does not produce a short
+    // answer -- it produces an empty one, with a 200 on it.
+    max_completion_tokens: 800,
+  };
+}
+
 const NOT_PRICED = {
   intent: { priced: false, reason: null, score: 0, judged: false },
 } satisfies { intent: IntentVerdict };
@@ -192,6 +223,14 @@ export type AiProbe = {
   detail: string;
   /** The parameter OpenAI objected to, when it named one. */
   param: string;
+  /** OpenAI's stop reason. "length" means the budget ran out mid-thought. */
+  finish: string;
+  /**
+   * The start of what came back, so a malformed answer can be read rather
+   * than guessed at. Two lines at most, and only ever the model's own words
+   * about a public page.
+   */
+  sample: string;
   /**
    * Answered, with nothing in it. Worth its own field because it is what a
    * reasoning model does when the token budget is too small to leave room for
@@ -232,9 +271,15 @@ const PROBE_TOKENS = 300;
  * not automatically visible here, and this is what settles which is which.
  */
 export const checkAiConfig = createServerFn({ method: "GET" })
-  .validator((data: unknown): { probe: boolean } => ({
-    probe: (data as { probe?: unknown } | null)?.probe === true,
-  }))
+  .validator((data: unknown): { probe: boolean; url: string } => {
+    const raw = data as { probe?: unknown; url?: unknown } | null;
+    return {
+      probe: raw?.probe === true,
+      // With a url, the diagnostic stops being a lookalike: it reads that page
+      // and sends the classifier's own request about it.
+      url: typeof raw?.url === "string" ? raw.url.trim() : "",
+    };
+  })
   .handler(async ({ data }): Promise<AiConfigReport> => {
     const key = env("POCKET_OPENAI_API_KEY", "OPENAI_API_KEY");
     const report: AiConfigReport = {
@@ -246,24 +291,30 @@ export const checkAiConfig = createServerFn({ method: "GET" })
       probe: null,
     };
     if (!data.probe || !key) return report;
-    return { ...report, probe: await probeModel(key, report.model) };
+    return { ...report, probe: await probeModel(key, report.model, data.url) };
   });
 
-/** One deliberately tiny call, made the same way the classifier makes its own. */
-async function probeModel(key: string, model: string): Promise<AiProbe> {
+/**
+ * One call. With a url it is the classifier's own request about that page;
+ * without one it is the smallest thing that can prove the endpoint answers.
+ */
+async function probeModel(key: string, model: string, url: string): Promise<AiProbe> {
   try {
+    const body = url
+      ? classifyRequest(url, await readPage(url))
+      : {
+          model,
+          messages: [
+            // Contains "json" for the same reason the system prompt does.
+            { role: "user", content: 'Reply with the json object {"ok":1} and nothing else.' },
+          ],
+          response_format: { type: "json_object" },
+          max_completion_tokens: PROBE_TOKENS,
+        };
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages: [
-          // Contains "json" for the same reason the system prompt above does.
-          { role: "user", content: 'Reply with the json object {"ok":1} and nothing else.' },
-        ],
-        response_format: { type: "json_object" },
-        max_completion_tokens: PROBE_TOKENS,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -280,20 +331,25 @@ async function probeModel(key: string, model: string): Promise<AiProbe> {
         detail: response.status !== 401 && typeof message === "string" ? message.slice(0, 300) : "",
         param: typeof body?.error?.param === "string" ? body.error.param : "",
         empty: false,
+        finish: "",
+        sample: "",
       };
     }
 
-    const body = (await response.json()) as {
+    const answer = (await response.json()) as {
       choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
     };
-    const content = (body.choices?.[0]?.message?.content ?? "").trim();
+    const content = (answer.choices?.[0]?.message?.content ?? "").trim();
+    const finish = answer.choices?.[0]?.finish_reason ?? "";
     return {
       ok: content.length > 0,
       status: response.status,
-      code: content.length > 0 ? "" : (body.choices?.[0]?.finish_reason ?? "empty"),
+      code: content.length > 0 ? "" : finish || "empty",
       detail: "",
       param: "",
       empty: content.length === 0,
+      finish,
+      sample: content.slice(0, 200),
     };
   } catch (error) {
     // The class of failure, not its text: a network error message can carry a
@@ -305,6 +361,8 @@ async function probeModel(key: string, model: string): Promise<AiProbe> {
       detail: "",
       param: "",
       empty: false,
+      finish: "",
+      sample: "",
     };
   }
 }
@@ -361,26 +419,7 @@ export const classifyAdult = createServerFn({ method: "POST" })
           authorization: `Bearer ${key}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({
-          model: env("POCKET_OPENAI_MODEL", "OPENAI_ADULT_MODEL") ?? DEFAULT_MODEL,
-          messages: [
-            { role: "system", content: SYSTEM },
-            {
-              role: "user",
-              content: [
-                `URL: ${target.toString()}`,
-                `Title: ${page.title || "(none)"}`,
-                `Description: ${page.description || "(none)"}`,
-                `Text: ${page.text || "(none)"}`,
-              ].join("\n"),
-            },
-          ],
-          response_format: { type: "json_object" },
-          // Generous on purpose. A reasoning model spends this budget thinking
-          // before it writes anything, so a tight cap does not produce a short
-          // answer -- it produces an empty one, with a 200 on it.
-          max_completion_tokens: 800,
-        }),
+        body: JSON.stringify(classifyRequest(target.toString(), page)),
       });
 
       if (!response.ok) throw new Error(`openai ${response.status}`);
