@@ -94,10 +94,15 @@ type Page = { title: string; description: string; text: string; signals: string 
  * difference. Structured data can: an ld+json Product with an offer is about
  * as close to proof as a page gets.
  */
-function signalsIn(raw: string): string {
+function signalsIn(raw: string, text: string): string {
   const found: string[] = [];
-  const prices = raw.match(
-    /(?:[$£€]\s?\d[\d,]*(?:\.\d{2})?|\b\d[\d,]*(?:\.\d{2})?\s?(?:USD|EUR|GBP)\b)/g,
+  // Amounts are read out of the visible text, never the markup. Scanned over
+  // raw HTML, "$1" matched minified CSS and script identifiers -- a portfolio
+  // came back with seven of them and was priced as a shop for it. The pattern
+  // also wants a decimal or at least two digits now, so a lone $1 no longer
+  // counts as a price at all.
+  const prices = text.match(
+    /(?:[$£€]\s?\d{2,}(?:[,.]\d{3})*(?:\.\d{2})?|[$£€]\s?\d+\.\d{2}|\b\d[\d,]*\.\d{2}\s?(?:USD|EUR|GBP)\b)/g,
   );
   if (prices && prices.length > 0) {
     found.push(
@@ -150,7 +155,7 @@ async function readPage(url: string): Promise<Page> {
       title: decode(title),
       description: decode(description),
       text,
-      signals: signalsIn(raw),
+      signals: signalsIn(raw, text),
     };
   } catch {
     // An unreachable page is judged on its address alone. Thin, but the model
@@ -208,10 +213,17 @@ const SYSTEM = [
   "",
   "The text you are given is only the start of the page. The line beginning",
   '"Found elsewhere" reports what was seen in the rest of it, and is evidence',
-  "about the whole document: structured data describing a product with an",
-  "offer, or a cart control, means sells is true even when the visible text",
-  "above says nothing about buying. Price-like amounts alone are weaker -- a",
-  "page can quote a figure without selling anything.",
+  "about the whole document.",
+  "",
+  "Two of those observations settle sells on their own: a cart or checkout",
+  "control, and structured data describing a product with an offer. Either one",
+  "means true even when the visible text says nothing about buying.",
+  "",
+  "Price-like amounts do NOT settle it and are not enough on their own. Pages",
+  "quote figures constantly -- a statistic, a salary, a budget, a joke about a",
+  "million dollars, the cost of something being written about. If amounts are",
+  "the only thing found, sells is false. Say so rather than reasoning that",
+  "they imply a sale.",
   "",
   "aboutAuthor: is the page's main content the PERSON, rather than a thing the",
   "person made? True for a CV, an about-me, a portfolio index listing work for",
