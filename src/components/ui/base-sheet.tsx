@@ -33,6 +33,15 @@ export type BaseSheetProps = {
   title: string;
   /** Small uppercase section label shown instead of a centred title. */
   eyebrow?: string | undefined;
+  /**
+   * Show nothing at the top at all -- no centred title, no eyebrow.
+   *
+   * The dialog still needs an accessible name, so the title stays in the tree
+   * and goes off-screen rather than being dropped. For a sheet whose contents
+   * already say what it is, a heading repeating the app's own name is a line
+   * of chrome above the only thing anyone came for.
+   */
+  hideTitle?: boolean | undefined;
   /** Optional supporting line under the title. Also the dialog's description. */
   description?: string | undefined;
   size?: SheetSize | undefined;
@@ -51,6 +60,7 @@ export function BaseSheet({
   title,
   eyebrow,
   description,
+  hideTitle,
   size = "auto",
   bottomOffset = NAV_HEIGHT,
   header,
@@ -142,8 +152,23 @@ export function BaseSheet({
             }}
           />
 
-          <div style={{ flex: "0 0 auto", padding: eyebrow ? "14px 20px 10px" : "16px 20px 12px" }}>
-            {eyebrow ? (
+          <div
+            style={{
+              flex: "0 0 auto",
+              // With nothing visible in it, the block still owned 28px of
+              // vertical space and pushed the first real row down.
+              padding: hideTitle
+                ? description
+                  ? "8px 20px 10px"
+                  : "8px 20px 0"
+                : eyebrow
+                  ? "14px 20px 10px"
+                  : "16px 20px 12px",
+            }}
+          >
+            {hideTitle ? (
+              <Drawer.Title style={SR_ONLY}>{title}</Drawer.Title>
+            ) : eyebrow ? (
               <>
                 {/* The dialog still needs an accessible name even when the
                     design shows only a section label. */}
