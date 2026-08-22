@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { APP_NAME, APP_ORIGIN } from "@/lib/brand";
 
 /**
  * The picture or the film inside a post on X, rather than a picture of X.
@@ -189,7 +190,16 @@ export const tweetLook = createServerFn({ method: "GET" })
       // hold the frame empty rather than falling back to the placeholder.
       const response = await fetch(endpoint, {
         signal: AbortSignal.timeout(6000),
-        headers: { accept: "application/json" },
+        headers: {
+          accept: "application/json",
+          // Not decoration. The runtime this ships on sends no User-Agent of
+          // its own, and syndication answers 400 to a request without one --
+          // which is why this worked from a development machine, where curl
+          // and the browser both supply one, and failed on the live site with
+          // every post reading as hidden. Caught by checking the deployed
+          // site rather than the deploy.
+          "user-agent": `${APP_NAME}/1.0 (+${APP_ORIGIN})`,
+        },
       });
       // A refusal at the transport is not evidence about the post either way,
       // so it is reported as hidden rather than as an empty post.
