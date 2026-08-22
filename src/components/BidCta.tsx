@@ -146,8 +146,12 @@ export function BidCta({ board, onPlaced }: { board: BidBoard; onPlaced: () => v
         >
           {busy ? "Opening checkout…" : board.bids.length === 0 ? "Place the first bid" : "Outbid"}
         </button>
+        {/* Measured to sit on one line at both widths this app supports: 252px
+            against 346px of column at 390, and against 276px at the 320 floor.
+            No nowrap -- if the font ever falls back to something wider, a wrap
+            is better than an overflow. */}
         <p style={{ margin: "10px 2px 0", fontSize: 13, lineHeight: 1.45, color: FAINT }}>
-          Already on the board? Enter the same address and raise your bid.
+          Already listed? Same address raises it.
         </p>
       </div>
     </section>
