@@ -18,12 +18,43 @@ import type { Database } from "./types";
 //
 // The SERVICE ROLE key is a different thing entirely: it bypasses RLS. It
 // must never appear here, in any client bundle, or under any name carrying a
-// VITE_ prefix.
+// VITE_ prefix. There is no server-side secret for this backend either: every
+// write goes through a SECURITY DEFINER function reached with the publishable
+// key, so nothing in this app needs a name like SUPABASE_SERVICE_ROLE_KEY and
+// none should be created for it.
+// Read from several names, first non-empty wins.
+//
+// The host reserves the SUPABASE_ prefix, so a variable carrying that word
+// may be impossible to create in the deployment panel -- which would leave
+// the escape hatch below unusable exactly when it is needed. The DB_ names
+// carry no reserved word at all and are the ones to reach for.
+//
+// Every name is written out in full on purpose. Vite replaces
+// `import.meta.env["LITERAL"]` at build time by matching the literal text; a
+// name assembled from a variable is never substituted and always reads
+// undefined in the browser. For the same reason each one must start with
+// VITE_ -- that is the only prefix Vite exposes to client code, so a
+// NEXT_PUBLIC_ name would be silently absent here however it was set.
+function fromEnv(...values: (string | undefined)[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) return value.trim();
+  }
+  return undefined;
+}
+
 const SUPABASE_URL =
-  import.meta.env["VITE_SUPABASE_URL"] ?? "https://boembmgwjjdqgkcokapx.supabase.co";
+  fromEnv(
+    import.meta.env["VITE_POCKET_DB_URL"],
+    import.meta.env["VITE_PUBLIC_DB_URL"],
+    import.meta.env["VITE_SUPABASE_URL"],
+  ) ?? "https://boembmgwjjdqgkcokapx.supabase.co";
 
 const SUPABASE_PUBLISHABLE_KEY =
-  import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ??
+  fromEnv(
+    import.meta.env["VITE_POCKET_DB_KEY"],
+    import.meta.env["VITE_PUBLIC_DB_KEY"],
+    import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"],
+  ) ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvZW1ibWd3ampkcWdrY29rYXB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1ODM0NTIsImV4cCI6MjA5NjE1OTQ1Mn0.VP3pSqYAyxxmGZxDfc7gUm3fFGBKKN-iIKtSDA8rx6c";
 
 /**

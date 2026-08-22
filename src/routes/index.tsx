@@ -137,7 +137,7 @@ function DeckMessage({
     status === "unconfigured"
       ? {
           title: "The feed isn't connected",
-          body: "Set VITE_SUPABASE_PUBLISHABLE_KEY in this deployment's environment and reload. Everything else works without it.",
+          body: "Set VITE_POCKET_DB_KEY (and VITE_POCKET_DB_URL) in this deployment's environment and reload. Everything else works without it.",
           action: null,
         }
       : status === "error"

@@ -350,12 +350,17 @@ export type SubmitResult =
  * why nothing is inserted on this side.
  */
 /**
- * Add an adult site to the catalogue.
+ * Add an adult page to the catalogue.
  *
  * Its own door, because classify-submission refuses adult links outright and
  * its deploy pipeline cannot be changed from here. The row lands live and
- * flagged, which is what puts the full-screen warning in front of it and keeps
- * it off the earned board -- flagged is not the same as refused.
+ * flagged, and the flag buys it a content warning rather than a lesser tier.
+ *
+ * A page, not a site: the function refuses a bare host. Submitting
+ * "pornhub.com" contributes nothing that anyone could not have found without
+ * it, while one video on it is a thing you can land on. That also makes the
+ * whole address the de-duplication key rather than the host, so two videos on
+ * one domain are two submissions.
  */
 type AdultSubmitRpc = {
   rpc(
@@ -364,13 +369,33 @@ type AdultSubmitRpc = {
   ): PromiseLike<{ data: unknown; error: { message: string } | null }>;
 };
 
-export async function submitAdultSite(deviceId: string, url: string): Promise<boolean> {
+export type AdultSubmitResult = { ok: true } | { ok: false; message: string };
+
+export async function submitAdultSite(deviceId: string, url: string): Promise<AdultSubmitResult> {
   const { data, error } = await (supabase as unknown as AdultSubmitRpc).rpc("submit_adult_site", {
     p_device_id: deviceId,
     p_url: url,
   });
-  if (error) return false;
-  return ((data ?? {}) as { ok?: boolean }).ok === true;
+  if (error) return { ok: false, message: "Couldn't add that one just now." };
+
+  const result = (data ?? {}) as { ok?: boolean; error?: string };
+  if (result.ok) return { ok: true };
+
+  switch (result.error) {
+    case "needs_deep_link":
+      // Named precisely, because the fix is one the person can actually make
+      // and "couldn't add that" would send them away thinking it was refused.
+      return {
+        ok: false,
+        message: "Link to the page itself, not the front page of the site.",
+      };
+    case "invalid_url":
+      return { ok: false, message: "That doesn't look like a public web address." };
+    case "too_many":
+      return { ok: false, message: "That's a lot of submissions in an hour. Try again later." };
+    default:
+      return { ok: false, message: "Couldn't add that one just now." };
+  }
 }
 
 export async function submitSite(
