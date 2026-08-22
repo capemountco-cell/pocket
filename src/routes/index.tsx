@@ -49,7 +49,7 @@ function DiscoveryScreen() {
     if (id) void initSitePrefs(id);
   }, []);
 
-  const { site, status, discover, showSite, restart, retry } = useDiscoveryDeck(
+  const { site, status, discover, rewind, canRewind, showSite, restart, retry } = useDiscoveryDeck(
     deviceId,
     requestedSiteId,
   );
@@ -79,7 +79,7 @@ function DiscoveryScreen() {
         }}
       >
         {site ? (
-          <SiteViewer site={site} />
+          <SiteViewer site={site} onRewind={rewind} canRewind={canRewind} />
         ) : (
           <DeckMessage
             status={status}
