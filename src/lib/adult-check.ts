@@ -162,28 +162,124 @@ function fallbackScore(url: string, page: { title: string; description: string }
   return strong.test(haystack) ? 0.9 : 0;
 }
 
+/** What one real round trip to the model did. */
+export type AiProbe = {
+  /** The model answered, and there was something in the answer. */
+  ok: boolean;
+  /** OpenAI's HTTP status, or 0 when the request never got that far. */
+  status: number;
+  /**
+   * OpenAI's own error code -- "invalid_api_key", "model_not_found",
+   * "insufficient_quota" -- or a label for a request that never reached them.
+   *
+   * The code and never the message: OpenAI echoes a masked form of the key
+   * back inside the message of a 401, and a masked secret is still a secret.
+   */
+  code: string;
+  /**
+   * Answered, with nothing in it. Worth its own field because it is what a
+   * reasoning model does when the token budget is too small to leave room for
+   * an answer after it has finished thinking -- a failure that looks like
+   * success from every angle except this one.
+   */
+  empty: boolean;
+};
+
+export type AiConfigReport = {
+  openaiKey: boolean;
+  model: string;
+  runtime: string;
+  /** Null unless asked for. It costs a real request, so it is not free. */
+  probe: AiProbe | null;
+};
+
+// Enough for {"ok":1} and not a token more. The probe answers whether the
+// call works, not whether the model is any good at the actual job.
+const PROBE_TOKENS = 16;
+
 /**
- * Whether the server this app runs on can see an OpenAI key.
+ * Whether the server this app runs on can see an OpenAI key, and whether that
+ * key actually works.
  *
- * Booleans only, never a value or a prefix of one. It exists because the
- * question is otherwise unanswerable from outside: the key lives in a panel
- * whose contents nothing here can read, and the classifier fails soft, so a
- * missing key looks exactly like a working one that scored everything low.
+ * Two questions, because answering only the first one is a trap this project
+ * walked into: the key was present and the classifier was still returning an
+ * unjudged verdict for every link, which the code reported as a calm
+ * `judged: false` and nothing else. A key that is set and a key that works are
+ * different facts and this reports them separately.
+ *
+ * Booleans and status codes only, never a value or a prefix of one.
  *
  * Worth being precise about which process is being asked. This runs in the
  * app's own SSR runtime, not in a Supabase edge function -- two different
  * places with two different environments. A secret set for edge functions is
  * not automatically visible here, and this is what settles which is which.
  */
-export const checkAiConfig = createServerFn({ method: "GET" }).handler(
-  (): { openaiKey: boolean; model: string; runtime: string } => ({
-    openaiKey: env("POCKET_OPENAI_API_KEY", "OPENAI_API_KEY") !== undefined,
-    model: env("POCKET_OPENAI_MODEL", "OPENAI_ADULT_MODEL") ?? DEFAULT_MODEL,
-    // Names the process that answered, so a result can never be attributed to
-    // the wrong one.
-    runtime: typeof process !== "undefined" ? "app-server" : "unknown",
-  }),
-);
+export const checkAiConfig = createServerFn({ method: "GET" })
+  .validator((data: unknown): { probe: boolean } => ({
+    probe: (data as { probe?: unknown } | null)?.probe === true,
+  }))
+  .handler(async ({ data }): Promise<AiConfigReport> => {
+    const key = env("POCKET_OPENAI_API_KEY", "OPENAI_API_KEY");
+    const report: AiConfigReport = {
+      openaiKey: key !== undefined,
+      model: env("POCKET_OPENAI_MODEL", "OPENAI_ADULT_MODEL") ?? DEFAULT_MODEL,
+      // Names the process that answered, so a result can never be attributed
+      // to the wrong one.
+      runtime: typeof process !== "undefined" ? "app-server" : "unknown",
+      probe: null,
+    };
+    if (!data.probe || !key) return report;
+    return { ...report, probe: await probeModel(key, report.model) };
+  });
+
+/** One deliberately tiny call, made the same way the classifier makes its own. */
+async function probeModel(key: string, model: string): Promise<AiProbe> {
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: 'Answer with {"ok":1} and nothing else.' }],
+        response_format: { type: "json_object" },
+        max_completion_tokens: PROBE_TOKENS,
+      }),
+    });
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as {
+        error?: { code?: unknown; type?: unknown };
+      } | null;
+      const code = body?.error?.code ?? body?.error?.type;
+      return {
+        ok: false,
+        status: response.status,
+        code: typeof code === "string" ? code : "unknown",
+        empty: false,
+      };
+    }
+
+    const body = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
+    };
+    const content = (body.choices?.[0]?.message?.content ?? "").trim();
+    return {
+      ok: content.length > 0,
+      status: response.status,
+      code: content.length > 0 ? "" : (body.choices?.[0]?.finish_reason ?? "empty"),
+      empty: content.length === 0,
+    };
+  } catch (error) {
+    // The class of failure, not its text: a network error message can carry a
+    // URL, and this one has a key in the headers next to it.
+    return {
+      ok: false,
+      status: 0,
+      code: error instanceof Error ? error.name : "unreachable",
+      empty: false,
+    };
+  }
+}
 
 export const classifyAdult = createServerFn({ method: "POST" })
   .validator((data: unknown): { url: string } => {
@@ -252,7 +348,10 @@ export const classifyAdult = createServerFn({ method: "POST" })
             },
           ],
           response_format: { type: "json_object" },
-          max_completion_tokens: 200,
+          // Generous on purpose. A reasoning model spends this budget thinking
+          // before it writes anything, so a tight cap does not produce a short
+          // answer -- it produces an empty one, with a 200 on it.
+          max_completion_tokens: 800,
         }),
       });
 
@@ -267,9 +366,13 @@ export const classifyAdult = createServerFn({ method: "POST" })
         kind?: unknown;
         reason?: unknown;
       };
+      // An answer with no number in it is not an answer, and clamping it
+      // would turn silence into a confident "not adult, not priced" that
+      // nothing ever judged. Fall through to the fallback instead, which at
+      // least reports itself honestly as unjudged.
+      if (parsed.adult === undefined || parsed.adult === null) throw new Error("no verdict");
       const score = clamp01(parsed.adult);
       const own = clamp01(parsed.own);
-      if (!Number.isFinite(score)) throw new Error("no score");
 
       const kind = ["personal", "commerce", "blog"].includes(String(parsed.kind))
         ? (String(parsed.kind) as PricedReason)
