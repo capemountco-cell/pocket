@@ -1,15 +1,8 @@
-import {
-  Bookmark,
-  BookmarkCheck,
-  Compass,
-  ExternalLink,
-  Inbox,
-  Settings,
-  User,
-} from "lucide-react";
+import { Bookmark, BookmarkCheck, Compass, ExternalLink, Inbox, Settings } from "lucide-react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { BaseSheet } from "@/components/ui/base-sheet";
+import { AvatarButton } from "@/components/AvatarButton";
 import { SheetRow, SheetRowBadge } from "@/components/ui/sheet-row";
 import { SheetButton } from "@/components/ui/sheet-button";
 import { toggleSaved } from "@/lib/site-prefs";
@@ -203,33 +196,9 @@ function AccountRow({ auth, onOpenAuth }: { auth: AuthState; onOpenAuth: () => v
         )}
       </span>
 
-      <span
-        aria-hidden="true"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 46,
-          height: 46,
-          borderRadius: 999,
-          background: "var(--app-chrome-avatar, #1f1f1f)",
-          color: "var(--app-chrome-muted, #9c9c97)",
-          overflow: "hidden",
-          flex: "0 0 auto",
-        }}
-      >
-        {auth.profile?.avatar_url ? (
-          <img
-            src={auth.profile.avatar_url}
-            alt=""
-            width={46}
-            height={46}
-            style={{ width: 46, height: 46, objectFit: "cover" }}
-          />
-        ) : (
-          <User size={22} />
-        )}
-      </span>
+      {/* Signed in, the face is the control: one tap opens the picture
+          picker. Signed out it stays a plain circle -- see AvatarButton. */}
+      <AvatarButton auth={auth} size={46} />
     </div>
   );
 }

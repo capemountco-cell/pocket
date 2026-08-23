@@ -2,7 +2,11 @@ import { BaseSheet } from "@/components/ui/base-sheet";
 import { THEMES, getCurrentTheme, setTheme, subscribeTheme, type ThemeKey } from "@/lib/theme";
 import { setNavStyle, useNavStyle, type NavStyle } from "@/lib/nav-style";
 import { alwaysShowAdult, setAlwaysShowAdult } from "@/lib/adult-consent";
+import { AvatarButton } from "@/components/AvatarButton";
+import { avatarMessage, storeAvatar } from "@/lib/avatar";
+import { toast } from "sonner";
 import { useEffect, useState } from "react";
+import type { AuthState } from "@/lib/auth";
 
 // Settings: the accent theme ramp and which of the two bottom-bar
 // presentations the device uses. Both are device-local preferences, so this
@@ -10,9 +14,11 @@ import { useEffect, useState } from "react";
 export function SettingsSheet({
   open,
   onOpenChange,
+  auth,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  auth: AuthState;
 }) {
   const navStyle = useNavStyle();
   const [theme, setThemeState] = useState<ThemeKey>(() => getCurrentTheme());
@@ -28,7 +34,14 @@ export function SettingsSheet({
 
   return (
     <BaseSheet open={open} onOpenChange={onOpenChange} title="Settings" eyebrow="Settings">
-      <section style={{ padding: "6px 20px 4px" }}>
+      {auth.session ? (
+        <section style={{ padding: "6px 20px 4px" }}>
+          <h3 style={GROUP_LABEL}>Picture</h3>
+          <PictureRow auth={auth} />
+        </section>
+      ) : null}
+
+      <section style={{ padding: auth.session ? "18px 20px 4px" : "6px 20px 4px" }}>
         <h3 style={GROUP_LABEL}>Theme</h3>
         <div
           role="radiogroup"
@@ -132,6 +145,77 @@ export function SettingsSheet({
         </div>
       </section>
     </BaseSheet>
+  );
+}
+
+/**
+ * The picture, with the two things you can do to it.
+ *
+ * The same tap-the-face gesture as the menu header rather than a second way of
+ * doing it, so whichever one someone finds first teaches the other. Removing
+ * lives only here: it is the rarer action and it does not deserve a second
+ * control sitting on the face itself.
+ */
+function PictureRow({ auth }: { auth: AuthState }) {
+  const [busy, setBusy] = useState(false);
+  const has = Boolean(auth.profile?.avatar_url);
+  const userId = auth.user?.id ?? auth.profile?.id ?? "";
+
+  const remove = async () => {
+    setBusy(true);
+    try {
+      await storeAvatar(userId, null);
+      await auth.refreshProfile();
+      toast("Picture removed");
+    } catch (error) {
+      toast(avatarMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 12 }}>
+      <AvatarButton auth={auth} size={64} />
+      <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+        <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>
+          {has ? "Tap to change it" : "Tap to add one"}
+        </p>
+        <p
+          style={{
+            margin: "4px 0 0",
+            fontSize: 13,
+            lineHeight: 1.4,
+            color: "var(--app-chrome-muted, #9c9c97)",
+          }}
+        >
+          Squared off and shrunk to 256px before it is saved.
+        </p>
+      </div>
+      {has ? (
+        <button
+          type="button"
+          onClick={() => void remove()}
+          disabled={busy}
+          style={{
+            appearance: "none",
+            padding: "10px 14px",
+            borderRadius: 999,
+            border: "1px solid var(--app-chrome-border, rgba(255,255,255,0.14))",
+            background: "transparent",
+            color: "var(--app-chrome-fg, #ffffff)",
+            fontFamily: "Inter, system-ui, sans-serif",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: busy ? "default" : "pointer",
+            WebkitTapHighlightColor: "transparent",
+            flex: "0 0 auto",
+          }}
+        >
+          Remove
+        </button>
+      ) : null}
+    </div>
   );
 }
 
