@@ -19,3 +19,22 @@ export function clampText(text: string, max: number): string {
   const space = cut.lastIndexOf(" ");
   return `${(space > max * 0.6 ? cut.slice(0, space) : cut).trimEnd()}…`;
 }
+
+/**
+ * Put text on the clipboard, and say whether it actually landed.
+ *
+ * Clipboard access is refused outright in some embedded and insecure
+ * contexts, so the caller is told what happened rather than being shown a
+ * success toast on faith.
+ */
+export async function writeClipboard(text: string): Promise<boolean> {
+  try {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    /* fall through to the failure path */
+  }
+  return false;
+}

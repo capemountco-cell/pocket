@@ -6,6 +6,7 @@ import { SheetRow, SheetRowBadge } from "@/components/ui/sheet-row";
 import { recordEvent } from "@/lib/discovery";
 import { getDeviceId } from "@/lib/device-id";
 import type { DiscoverySite } from "@/lib/discovery";
+import { writeClipboard } from "@/lib/utils";
 
 const ICON = 21;
 
@@ -78,19 +79,4 @@ export function SendToSheet({
       />
     </BaseSheet>
   );
-}
-
-// Clipboard access is refused outright in some embedded and insecure
-// contexts, so the caller is told whether the copy actually happened rather
-// than being shown a success toast on faith.
-async function writeClipboard(text: string): Promise<boolean> {
-  try {
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch {
-    /* fall through to the failure path */
-  }
-  return false;
 }
