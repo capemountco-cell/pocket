@@ -89,7 +89,7 @@ export function NavSheets({
       <SendToSheet {...bind("send-to")} site={site} />
       <InboxSheet {...bind("inbox")} userId={auth.user?.id} />
       <SubmitSheet {...bind("submit")} />
-      <SettingsSheet {...bind("settings")} />
+      <SettingsSheet {...bind("settings")} auth={auth} />
       <AuthSheet {...bind("auth")} />
     </>
   );
