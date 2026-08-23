@@ -127,22 +127,25 @@ export function BaseSheet({
             maxHeight: `calc(100dvh - ${bottomOffset} - 24px)`,
             ...(height ? { height } : {}),
             paddingBottom: 8,
-            // Closed on all four sides, curved on two.
+            // Rounded at the top, open at the foot.
             //
-            // This sheet does not sit on the bottom of the screen -- it stops
-            // where the bar begins -- so its lower edge is as visible as its
-            // upper one. Left open, the footer bled into the black behind it
-            // with nothing to say where the sheet ended, which is most obvious
-            // with a keyboard up and the whole sheet raised clear of the bar.
-            // The border is what closes that edge; the radius was never doing
-            // that work, and rounding the bottom corners cut two wedges out of
-            // the sheet that the site behind showed through.
+            // #57 closed the lower edge with a border and a radius, on the
+            // reasoning that a sheet stopping short of the bar has a visible
+            // bottom. Both were wrong on the screen: the radius cut two wedges
+            // out of every sheet that the site behind showed through, and the
+            // border -- a hairline running the full width of a black sheet on
+            // a black screen -- reads as a rule drawn across the app rather
+            // than as the sheet's own edge.
             borderRadius: "22px 22px 0 0",
             // Same chrome tokens as the bottom bar, so a themed sheet and a
             // themed bar can never look like two different apps.
             background: "var(--app-chrome-bg, #000000)",
             color: "var(--app-chrome-fg, #ffffff)",
             border: "1px solid var(--app-chrome-border, rgba(255,255,255,0.14))",
+            // The one side that gets none. Nothing is below the foot but the
+            // gap over the bar, so there is no seam here for a line to
+            // describe -- only a line.
+            borderBottom: 0,
             fontFamily: "Inter, system-ui, sans-serif",
             outline: "none",
           }}
