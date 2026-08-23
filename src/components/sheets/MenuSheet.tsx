@@ -3,6 +3,8 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { BaseSheet } from "@/components/ui/base-sheet";
 import { AvatarButton } from "@/components/AvatarButton";
+import { groupPin, pinFor } from "@/lib/pin";
+import { writeClipboard } from "@/lib/utils";
 import { SheetRow, SheetRowBadge } from "@/components/ui/sheet-row";
 import { SheetButton } from "@/components/ui/sheet-button";
 import { toggleSaved } from "@/lib/site-prefs";
@@ -129,6 +131,65 @@ export function MenuSheet({
   );
 }
 
+/**
+ * Your PIN, under your name, where the account blurb used to be.
+ *
+ * The line it replaced -- "Your history follows you here" -- was reassurance,
+ * and reassurance is worth saying once rather than every time the menu opens.
+ * This is the thing someone actually needs off this screen: the number they
+ * read out so a friend can find them.
+ *
+ * Tapping copies the bare digits. Anyone showing a PIN to someone is about to
+ * type it somewhere, and the copy is free.
+ */
+function PinLine({ accountId }: { accountId: string }) {
+  const pin = pinFor(accountId);
+  if (!pin) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        void writeClipboard(pin).then((ok) =>
+          toast(ok ? "PIN copied" : "Couldn't reach the clipboard"),
+        );
+      }}
+      aria-label={`Your PIN, ${pin.split("").join(" ")}. Tap to copy.`}
+      style={{
+        display: "block",
+        // Same trick as the sign-in link below: the padding takes the hit area
+        // to 44px and the equal negative margin hands the space straight back,
+        // so the header looks untouched and the thumb still has somewhere to
+        // land.
+        padding: "12px 0",
+        margin: "-12px 0",
+        background: "transparent",
+        border: 0,
+        textAlign: "left",
+        color: "var(--app-chrome-muted, #9c9c97)",
+        fontFamily: "Inter, system-ui, sans-serif",
+        fontSize: 14,
+        cursor: "pointer",
+        WebkitTapHighlightColor: "transparent",
+      }}
+    >
+      PIN{" "}
+      <span
+        style={{
+          color: "var(--app-chrome-fg, #ffffff)",
+          fontWeight: 600,
+          // Tabular figures so the digits do not shuffle sideways between one
+          // account and the next, and a little tracking because a number being
+          // read aloud is easier to keep your place in when it is open.
+          fontVariantNumeric: "tabular-nums",
+          letterSpacing: "0.06em",
+        }}
+      >
+        {groupPin(pin)}
+      </span>
+    </button>
+  );
+}
+
 // Who you are, or an invitation to become someone. Signed out is a first-class
 // state, not a broken one: everything in this menu except the inbox works
 // without an account.
@@ -162,11 +223,7 @@ function AccountRow({ auth, onOpenAuth }: { auth: AuthState; onOpenAuth: () => v
           {auth.loading ? "\u2026" : name}
         </span>
         {signedIn ? (
-          <span
-            style={{ display: "block", fontSize: 14, color: "var(--app-chrome-muted, #9c9c97)" }}
-          >
-            Your history follows you here
-          </span>
+          <PinLine accountId={auth.user?.id ?? auth.profile?.id ?? ""} />
         ) : (
           <button
             type="button"
