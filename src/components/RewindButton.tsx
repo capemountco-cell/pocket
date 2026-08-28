@@ -17,6 +17,14 @@ import { useReducedMotion } from "motion/react";
  *
  * Not in the bottom bar. The bar's five slots are fixed and their meanings are
  * muscle memory; a sixth that comes and goes would break both.
+ *
+ * `visible` is about paint, not about existence. The button is always in the
+ * accessibility tree and always tabbable, because the way back is always
+ * available while there is a trail -- withdrawing the action itself because
+ * the screen was touched three seconds ago would leave it unreachable by
+ * keyboard and unannounced to a screen reader, neither of which is what the
+ * quiet is for. Tabbing to it brings it back into view; see useIdleReveal,
+ * which reads `data-idle-reveal` below.
  */
 export function RewindButton({ visible, onRewind }: { visible: boolean; onRewind: () => void }) {
   const reduceMotion = useReducedMotion();
@@ -25,8 +33,10 @@ export function RewindButton({ visible, onRewind }: { visible: boolean; onRewind
       type="button"
       onClick={onRewind}
       aria-label="Back to the previous site"
-      aria-hidden={!visible}
-      tabIndex={visible ? 0 : -1}
+      // Tells the idle watcher that events out of here are this control being
+      // used rather than activity to hide for. Without it the press that opens
+      // a tap withdraws the button before the tap lands.
+      data-idle-reveal=""
       style={{
         position: "absolute",
         right: 16,
@@ -52,6 +62,9 @@ export function RewindButton({ visible, onRewind }: { visible: boolean; onRewind
         // Sinks a few pixels when it leaves, so it reads as withdrawing rather
         // than blinking out.
         transform: visible ? "translateY(0)" : "translateY(6px)",
+        // Out of sight is out of reach for a finger, so an invisible button
+        // never eats a tap meant for the site. It stays focusable regardless,
+        // which is how a keyboard gets to it.
         pointerEvents: visible ? "auto" : "none",
         transition: reduceMotion ? "none" : "opacity 220ms ease, transform 220ms ease",
       }}

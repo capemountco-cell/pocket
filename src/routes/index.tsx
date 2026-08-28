@@ -54,6 +54,16 @@ function DiscoveryScreen() {
     requestedSiteId,
   );
 
+  // Recorded on the way out rather than on arrival: the question worth
+  // answering is which sites people tap straight past and then reach back
+  // for, and that is the one being left. The name is already on
+  // record_event's allowlist -- it was added for this control and nothing
+  // has ever sent it.
+  const goBack = () => {
+    if (deviceId && site) recordEvent(deviceId, "rewind", site.id);
+    rewind();
+  };
+
   const advance = () => {
     // The mark is the button that was just pressed, so it turns: a full
     // rotation is the receipt for the tap, and it lasts about as long as the
@@ -79,7 +89,7 @@ function DiscoveryScreen() {
         }}
       >
         {site ? (
-          <SiteViewer site={site} onRewind={rewind} canRewind={canRewind} />
+          <SiteViewer site={site} onRewind={goBack} canRewind={canRewind} />
         ) : (
           <DeckMessage
             status={status}

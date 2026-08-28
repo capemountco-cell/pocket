@@ -296,6 +296,7 @@ export type EventKind =
   | "copy_link"
   | "open_site"
   | "catalogue_restart"
+  | "rewind"
   | "auth_open"
   | "auth_instant_created"
   | "auth_instant_claimed"
